@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打包加价管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; background: #f5f7fa; padding: 16px; color: #333; }
+
+        .search-bar { background: #fff; padding: 16px 20px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .search-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+        .search-item { display: flex; align-items: center; gap: 8px; }
+        .search-label { font-size: 13px; color: #666; white-space: nowrap; }
+        .search-input { padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; min-width: 160px; outline: none; }
+        .search-input:focus { border-color: #1e73be; }
+        .search-select { padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; min-width: 160px; background: #fff; cursor: pointer; outline: none; }
+        .search-select:focus { border-color: #1e73be; }
+
+        .btn { padding: 6px 18px; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .btn-primary { background: #1e73be; color: #fff; }
+        .btn-primary:hover { background: #1a64a5; box-shadow: 0 2px 6px rgba(30,115,190,0.3); }
+        .btn-secondary { background: #fff; color: #666; border: 1px solid #d9d9d9; }
+        .btn-secondary:hover { color: #1e73be; border-color: #1e73be; }
+        .btn-success { background: #52c41a; color: #fff; }
+        .btn-success:hover { background: #49b219; }
+
+        .table-container { background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-toolbar { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; }
+        .table-title { font-size: 15px; font-weight: 600; color: #333; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { background: #fafbfc; font-weight: 600; color: #666; font-size: 12px; padding: 12px 14px; text-align: left; border-bottom: 1px solid #e8e8e8; }
+        .data-table td { padding: 12px 14px; border-bottom: 1px solid #f0f0f0; color: #333; }
+        .data-table tr:hover td { background: #f9fbff; }
+        .data-table .center { text-align: center; }
+
+        .action-link { padding: 0 8px; font-size: 12px; border: none; background: none; cursor: pointer; color: #1e73be; }
+        .action-link:hover { text-decoration: underline; }
+        .action-link.danger { color: #c62828; }
+        .action-link.danger:hover { color: #e53935; }
+
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; gap: 15px; border-top: 1px solid #f0f0f0; }
+        .pagination-info { font-size: 13px; color: #888; }
+        .pagination-right { display: flex; align-items: center; gap: 12px; }
+        .page-size-select { padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; cursor: pointer; }
+        .pagination-controls { display: flex; align-items: center; gap: 6px; }
+        .pagination-btn { min-width: 32px; height: 32px; padding: 0 6px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; color: #333; }
+        .pagination-btn:hover:not(:disabled):not(.active) { border-color: #1e73be; color: #1e73be; }
+        .pagination-btn.active { background: #1e73be; color: #fff; border-color: #1e73be; font-weight: 600; }
+        .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .jump-input { width: 48px; padding: 4px 6px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; font-size: 13px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+        <div class="search-row">
+            <div class="search-item">
+                <span class="search-label">打包价名称</span>
+                <input type="text" class="search-input" id="searchName" placeholder="请输入">
+            </div>
+            <div class="search-item">
+                <span class="search-label">打包规则</span>
+                <select class="search-select" id="searchRule">
+                    <option value="">请选择</option>
+                    <option value="单项价格相同，按个数加价">单项价格相同，按个数加价</option>
+                    <option value="固定总价">固定总价</option>
+                    <option value="单价相同，按个数加价，有最高限价">单价相同，按个数加价，有最高限价</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">报送分类2</span>
+                <select class="search-select" id="searchReport">
+                    <option value="">请选择</option>
+                    <option>抽检监测（省级专项）</option>
+                    <option>监督抽检</option>
+                    <option>风险监测</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">食品分类</span>
+                <select class="search-select" id="searchFood">
+                    <option value="">请选择</option>
+                    <option>调味品</option>
+                    <option>油脂</option>
+                    <option>水果制品</option>
+                    <option>乳制品</option>
+                    <option>茶叶及相关制品</option>
+                    <option>肉制品</option>
+                    <option>粮食加工品</option>
+                    <option>蔬菜制品</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" onclick="clearSearch()">重置</button>
+            <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+        </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="table-container">
+        <div class="table-toolbar">
+            <div class="table-title">打包加价管理列表</div>
+            <div>
+                <button class="btn btn-success" onclick="openNewTab('add')">+ 新增</button>
+            </div>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="center" style="width:60px;">序号</th>
+                    <th style="width:180px;">报送分类2</th>
+                    <th style="width:120px;">食品分类</th>
+                    <th style="width:140px;">打包价名称</th>
+                    <th style="width:220px;">打包规则</th>
+                    <th>检验项目名称</th>
+                    <th style="width:140px;" class="center">操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <div class="pagination-container">
+            <div class="pagination-info" id="pageInfo">已选择 0 项 · 本页 10 条 · 共有 28 条</div>
+            <div class="pagination-right">
+                <select class="page-size-select" id="pageSize" onchange="changePageSize()">
+                    <option value="10" selected>10条/页</option>
+                    <option value="15">15条/页</option>
+                    <option value="20">20条/页</option>
+                    <option value="50">50条/页</option>
+                </select>
+                <div class="pagination-controls" id="paginationControls"></div>
+                <div style="font-size:13px;color:#666;">跳至 <input type="text" class="jump-input" id="jumpPage" value="1"> 页</div>
+                <button class="btn btn-secondary" style="padding:4px 12px;" onclick="jumpToPage()">确定</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ============ 模拟数据 ============
+    var ruleOptions = ['单项价格相同，按个数加价', '固定总价', '单价相同，按个数加价，有最高限价'];
+    var foodCategories = ['调味品', '油脂', '水果制品', '乳制品', '茶叶及相关制品', '肉制品', '粮食加工品', '蔬菜制品'];
+    var reportCategories2 = ['抽检监测（省级专项）', '监督抽检', '风险监测'];
+    var packageNames = ['磺胺类', '磺胺类总量', '脂肪族', '青霉素类', '氯酸盐高氯酸盐', '农药', '氟虫腈', '氯丙嗪林非特罗', '头孢', '硝烟', '塑化剂', '重金属', '真菌毒素', '食品添加剂'];
+    var itemDetails = {
+        '磺胺类': '磺胺嘧啶,磺胺邻二甲氧嘧啶,磺胺间甲氧嘧啶,磺胺噻唑,磺胺二甲嘧啶...',
+        '磺胺类总量': '甲氧苄啶,磺胺类（总量）',
+        '脂肪族': '(花生酸+山嵛酸)/总脂肪酸,亚油酸/总脂肪酸,月桂酸/总脂肪酸...',
+        '青霉素类': '双氯青霉素,乙氧萘青霉素,甲氧苯青霉素,青霉素G,青霉素V...',
+        '氯酸盐高氯酸盐': '高氯酸盐,氯酸盐',
+        '农药': '氯氰菊酯,特乐酚,灭螨腈,甲氰菊酯,氯菊酯,溴氰菊酯,氰戊菊酯...',
+        '氟虫腈': '氟虫腈,氟虫腈亚砜,氟甲腈,氟虫腈砜',
+        '氯丙嗪林非特罗': '非诺特罗,氯丙那林',
+        '头孢': '头孢喹肟,头孢氨苄,头孢喹啉,头孢匹林,头孢拉定,头孢丙烯...',
+        '硝烟': '羟甲基甲硝咪唑,羟基甲硝咪唑,洛硝达唑,甲硝唑',
+        '塑化剂': '邻苯二甲酸二乙酯,邻苯二甲酸二丁酯,邻苯二甲酸二辛酯...',
+        '重金属': '铅,镉,汞,砷,铬,镍,铜,锌,锡,锑',
+        '真菌毒素': '黄曲霉毒素B1,黄曲霉毒素M1,赭曲霉毒素A,呕吐毒素...',
+        '食品添加剂': '防腐剂,着色剂,甜味剂,抗氧化剂,增稠剂,乳化剂...'
+    };
+
+    var rawData = [];
+    for (var i = 0; i < packageNames.length; i++) {
+        rawData.push({
+            id: i + 1,
+            reportCategory2: reportCategories2[i % reportCategories2.length],
+            foodCategory: foodCategories[i % foodCategories.length],
+            packageName: packageNames[i],
+            rule: ruleOptions[i % ruleOptions.length],
+            items: itemDetails[packageNames[i]] || '检测项目1,检测项目2,检测项目3...'
+        });
+    }
+    // 额外补齐到28条
+    for (var j = packageNames.length; j < 28; j++) {
+        var pIdx = j % packageNames.length;
+        rawData.push({
+            id: j + 1,
+            reportCategory2: reportCategories2[(j + 1) % reportCategories2.length],
+            foodCategory: foodCategories[(j + 3) % foodCategories.length],
+            packageName: packageNames[pIdx] + '（组' + Math.floor(j / packageNames.length + 1) + '）',
+            rule: ruleOptions[j % ruleOptions.length],
+            items: itemDetails[packageNames[pIdx]] || '检测项目1,检测项目2,检测项目3...'
+        });
+    }
+
+    // ============ 分页与搜索 ============
+    var filteredData = rawData.slice();
+    var currentPage = 1;
+    var pageSize = 10;
+
+    function renderTable() {
+        var tbody = document.getElementById('tableBody');
+        var start = (currentPage - 1) * pageSize;
+        var end = start + pageSize;
+        var pageData = filteredData.slice(start, end);
+
+        if (pageData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">暂无数据</td></tr>';
+        } else {
+            tbody.innerHTML = pageData.map(function(item) {
+                return '<tr>' +
+                    '<td class="center">' + item.id + '</td>' +
+                    '<td title="' + item.reportCategory2 + '">' + item.reportCategory2 + '</td>' +
+                    '<td>' + item.foodCategory + '</td>' +
+                    '<td>' + item.packageName + '</td>' +
+                    '<td>' + item.rule + '</td>' +
+                    '<td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + item.items + '">' + item.items + '</td>' +
+                    '<td class="center">' +
+                        '<button class="action-link" onclick="openNewTab(\'edit\',' + item.id + ')">编辑</button>' +
+                        '<button class="action-link danger" onclick="deleteRecord(' + item.id + ')">删除</button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        renderPagination();
+    }
+
+    function renderPagination() {
+        var total = filteredData.length;
+        var totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        // 分页控件
+        var ctrl = document.getElementById('paginationControls');
+        var html = '';
+        html += '<button class="pagination-btn" onclick="goToPage(' + (currentPage - 1) + ')" ' + (currentPage <= 1 ? 'disabled' : '') + '>‹</button>';
+        html += '<button class="pagination-btn" onclick="goToPage(' + (currentPage - 5) + ')" ' + (currentPage <= 5 ? 'disabled' : '') + '>‹‹</button>';
+        // 页码
+        var startPage = Math.max(1, currentPage - 2);
+        var endPage = Math.min(totalPages, startPage + 4);
+        for (var p = startPage; p <= endPage; p++) {
+            html += '<button class="pagination-btn ' + (p === currentPage ? 'active' : '') + '" onclick="goToPage(' + p + ')">' + p + '</button>';
+        }
+        html += '<button class="pagination-btn" onclick="goToPage(' + (currentPage + 5) + ')" ' + (currentPage + 5 > totalPages ? 'disabled' : '') + '>››</button>';
+        html += '<button class="pagination-btn" onclick="goToPage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + '>›</button>';
+        ctrl.innerHTML = html;
+
+        document.getElementById('pageInfo').textContent = '已选择 0 项 · 本页 ' + Math.min(pageSize, total - (currentPage - 1) * pageSize) + ' 条 · 共有 ' + total + ' 条';
+        document.getElementById('jumpPage').value = currentPage;
+    }
+
+    function goToPage(p) {
+        var totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+        if (p < 1) p = 1;
+        if (p > totalPages) p = totalPages;
+        currentPage = p;
+        renderTable();
+    }
+
+    function changePageSize() {
+        pageSize = parseInt(document.getElementById('pageSize').value);
+        currentPage = 1;
+        renderTable();
+    }
+
+    function jumpToPage() {
+        var p = parseInt(document.getElementById('jumpPage').value);
+        if (isNaN(p) || p < 1) p = 1;
+        goToPage(p);
+    }
+
+    function doSearch() {
+        var name = document.getElementById('searchName').value.trim();
+        var rule = document.getElementById('searchRule').value;
+        var report = document.getElementById('searchReport').value;
+        var food = document.getElementById('searchFood').value;
+
+        filteredData = rawData.filter(function(d) {
+            if (name && d.packageName.indexOf(name) === -1) return false;
+            if (rule && d.rule !== rule) return false;
+            if (report && d.reportCategory2 !== report) return false;
+            if (food && d.foodCategory !== food) return false;
+            return true;
+        });
+        currentPage = 1;
+        renderTable();
+    }
+
+    function clearSearch() {
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchRule').value = '';
+        document.getElementById('searchReport').value = '';
+        document.getElementById('searchFood').value = '';
+        filteredData = rawData.slice();
+        currentPage = 1;
+        renderTable();
+    }
+
+    // ============ 打开新Tab编辑/新增 ============
+    function openNewTab(mode, id) {
+        var url = 'package_price_edit.html?mode=' + mode + (id ? '&id=' + id : '');
+        window.open(url, '_blank');
+    }
+
+    function deleteRecord(id) {
+        if (!confirm('确定要删除这条打包规则吗？')) return;
+        rawData = rawData.filter(function(d) { return d.id !== id; });
+        filteredData = filteredData.filter(function(d) { return d.id !== id; });
+        renderTable();
+    }
+
+    // 初始化
+    renderTable();
+</script>
+</body>
+</html>

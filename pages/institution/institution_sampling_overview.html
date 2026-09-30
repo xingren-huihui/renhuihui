@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>机构抽检概况</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background: #f5f7fa; padding: 20px; color: #333; font-size: 13px; }
+
+        /* 统计卡片 */
+        .cards-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+        .stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #1e9a6c; transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30,154,108,0.15); }
+        .stat-card.green { border-left-color: #1e9a6c; }
+        .stat-card.orange { border-left-color: #faad14; }
+        .stat-card.red { border-left-color: #f5222d; }
+        .stat-label { font-size: 13px; color: #999; margin-bottom: 8px; }
+        .stat-value { font-size: 28px; font-weight: 600; color: #333; }
+        .stat-unit { font-size: 14px; color: #999; margin-left: 4px; }
+        .stat-sub { font-size: 12px; color: #1e9a6c; margin-top: 6px; }
+
+        /* 分区容器 */
+        .section { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; overflow: hidden; }
+        .section-header { padding: 14px 20px; background: linear-gradient(135deg, #1e9a6c, #2daf7f); color: #fff; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .section-header::before { content: ""; width: 4px; height: 16px; background: #fff; border-radius: 2px; }
+        .section-body { padding: 20px; }
+
+        /* 表格 */
+        .table-container { width: 100%; overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+        .data-table th { background: linear-gradient(180deg, #f5faf7 0%, #edf5f0 100%); font-weight: 600; color: #1e9a6c; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e8f8f0; white-space: nowrap; }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        .data-table tr:hover td { background: #f5faf7; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+
+        /* 进度条 */
+        .progress-cell { display: flex; align-items: center; gap: 8px; }
+        .progress-bar { flex: 1; height: 6px; background: #e8e8e8; border-radius: 3px; overflow: hidden; min-width: 60px; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .progress-fill.green { background: #1e9a6c; }
+        .progress-fill.orange { background: #faad14; }
+        .progress-fill.red { background: #f5222d; }
+
+        /* 状态徽标 */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+        .badge-green { background: #e6f7ef; color: #1e9a6c; }
+        .badge-orange { background: #fff7e6; color: #faad14; }
+        .badge-red { background: #fff1f0; color: #f5222d; }
+
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+
+        /* 重复抽检阈值筛选 */
+        .repeat-filter { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 12px 14px; background: #f5faf7; border: 1px solid #e8f8f0; border-radius: 6px; flex-wrap: wrap; }
+        .repeat-filter label { font-size: 13px; color: #666; font-weight: 500; }
+        .repeat-filter input { width: 90px; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; outline: none; }
+        .repeat-filter input:focus { border-color: #1e9a6c; box-shadow: 0 0 0 2px rgba(30,154,108,0.12); }
+        .repeat-filter .btn-query { padding: 6px 22px; background: #1e9a6c; color: #fff; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+        .repeat-filter .btn-query:hover { background: #178558; }
+        .repeat-filter .filter-tip { font-size: 12px; color: #999; }
+
+        /* 操作按钮 */
+        .btn-action { padding: 4px 12px; margin: 0 3px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; color: #595959; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .btn-action:hover { opacity: 0.85; }
+        .btn-view { border-color: #1e9a6c; color: #1e9a6c; }
+        .btn-view:hover { background: #1e9a6c; color: #fff; }
+        .btn-edit { border-color: #faad14; color: #faad14; }
+        .btn-edit:hover { background: #faad14; color: #fff; }
+
+        /* 可点击数字 */
+        .clickable-num { color: #1e9a6c; cursor: pointer; font-weight: 600; text-decoration: none; }
+        .clickable-num:hover { color: #178558; text-decoration: underline; }
+
+        /* 详情弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-start; padding-top: 50px; overflow-y: auto; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: #fff; border-radius: 8px; width: 95%; max-width: 1400px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden; animation: modalSlideIn 0.3s ease; }
+        @keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { padding: 14px 20px; background: linear-gradient(135deg, #1e9a6c, #2daf7f); color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
+        .modal-close-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; opacity: 0.8; }
+        .modal-close-btn:hover { opacity: 1; }
+        .modal-body { padding: 20px; max-height: 70vh; overflow: auto; }
+        .modal-info { margin-bottom: 12px; font-size: 13px; color: #666; }
+        .modal-info strong { color: #333; }
+        .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1400px; }
+        .detail-table th { background: linear-gradient(180deg, #f5faf7 0%, #edf5f0 100%); font-weight: 600; color: #1e9a6c; padding: 8px 10px; text-align: left; border-bottom: 2px solid #e8f8f0; white-space: nowrap; }
+        .detail-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+        .detail-table tr:hover td { background: #f5faf7; }
+        .detail-table .ellipsis { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+
+        @media(max-width: 1200px) {
+            .cards-row { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media(max-width: 768px) {
+            .cards-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 统计卡片 -->
+    <div class="cards-row">
+        <div class="stat-card">
+            <div class="stat-label">任务总数</div>
+            <div class="stat-value" id="cardTotalTask">0<span class="stat-unit">批次</span></div>
+            <div class="stat-sub" id="cardTotalTaskSub">— 家机构</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-label">抽样完成数</div>
+            <div class="stat-value" id="cardSamplingDone">0<span class="stat-unit">批次</span></div>
+            <div class="stat-sub" id="cardSamplingRate">— 完成率</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-label">检验完成数</div>
+            <div class="stat-value" id="cardInspectionDone">0<span class="stat-unit">批次</span></div>
+            <div class="stat-sub" id="cardInspectionRate">— 完成率</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-label">抽检覆盖企业数</div>
+            <div class="stat-value" id="cardCoverEnterprises">0<span class="stat-unit">家</span></div>
+        </div>
+    </div>
+
+    <!-- 各机构指标表格 -->
+    <div class="section">
+        <div class="section-header">各机构抽检概况指标</div>
+        <div class="section-body">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="center" style="width:50px;">序号</th>
+                            <th>抽检机构</th>
+                            <th class="right">任务总数</th>
+                            <th class="right">抽样完成数</th>
+                            <th class="right">检验完成数</th>
+                            <th style="width:200px;">不合格率</th>
+                            <th style="width:200px;">问题发现率</th>
+                            <th style="width:200px;">风险发现率</th>
+                            <th class="right">覆盖企业数</th>
+                            <th class="right">抽检覆盖率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overviewTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重复抽检情况表格 -->
+    <div class="section">
+        <div class="section-header">重复抽检情况（同一机构同一日期到同一企业抽检降序）</div>
+        <div class="section-body">
+            <div class="repeat-filter">
+                <label>重复批次阈值：</label>
+                <input type="number" id="repeatThreshold" value="10" min="1" step="1">
+                <button class="btn-query" onclick="queryRepeat()">查询</button>
+                <span class="filter-tip">仅展示「监督抽检和风险抽检批次数」之和大于等于阈值的记录</span>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="center" style="width:50px;">序号</th>
+                            <th>抽检机构</th>
+                            <th>抽样日期</th>
+                            <th>被抽样单位</th>
+                            <th class="center">监督抽检批次数</th>
+                            <th class="center">风险抽检批次数</th>
+                            <th class="center">监督抽检和风险抽检批次数</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repeatTableBody">
+                        <tr>
+                            <td class="center">1</td>
+                            <td>北京市食品检验研究院</td>
+                            <td>2026-09-15</td>
+                            <td>北京永辉超市通州店</td>
+                            <td class="center">8</td>
+                            <td class="center">5</td>
+                            <td class="center"><a class="clickable-num" onclick="showRepeatDetailModal('北京市食品检验研究院', '2026-09-15', '北京永辉超市通州店')"><strong>13</strong></a></td>
+                        </tr>
+                        <tr>
+                            <td class="center">2</td>
+                            <td>北京市食品安全监控和风险评估中心</td>
+                            <td>2026-09-18</td>
+                            <td>北京家乐福超市朝阳店</td>
+                            <td class="center">6</td>
+                            <td class="center">7</td>
+                            <td class="center"><a class="clickable-num" onclick="showRepeatDetailModal('北京市食品安全监控和风险评估中心', '2026-09-18', '北京家乐福超市朝阳店')"><strong>13</strong></a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="detailModalTitle">明细列表</h3>
+                <button class="modal-close-btn" onclick="closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info" id="detailModalInfo"></div>
+                <div class="table-container">
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>抽样单编号</th>
+                                <th>食品大类</th>
+                                <th>食品亚类</th>
+                                <th>食品次亚类</th>
+                                <th>食品细类</th>
+                                <th>报送分类A</th>
+                                <th>报送分类B</th>
+                                <th>任务来源</th>
+                                <th>任务类别</th>
+                                <th>样品名称</th>
+                                <th>包装分类</th>
+                                <th>样品类型</th>
+                                <th>质量等级</th>
+                                <th>抽样方式</th>
+                                <th>商标</th>
+                                <th>样品来源</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ 模拟原始抽样记录数据 ============
+        // 字段：institution(抽检机构), status(样品状态), enterprise(被抽样单位),
+        //       sampleDate(抽样日期), category(食品类别), isUnqualified(是否不合格),
+        //       hasIssue(是否发现问题), hasRisk(是否发现风险)
+        var sampleStatuses = ['退回接样平台', '已接样(主检人待填报)', '检验中', '已完全提交'];
+        var categories = ['餐饮食品', '区域食品', '动物源食品', '乳制品'];
+        var institutions = [
+            '北京市食品检验研究院',
+            '北京市食品安全监控和风险评估中心',
+            '北京出入境检验检疫局',
+            '北京市产品质量监督检验院'
+        ];
+        var enterprises = [
+            '华联生鲜超市(马驹桥中学路店)',
+            '北京京客隆商业集团',
+            '北京物美商业集团',
+            '北京永辉超市通州店',
+            '北京沃尔玛超市大兴店',
+            '北京家乐福超市朝阳店',
+            '稻香村食品有限公司',
+            '北京味多美食品有限责任公司',
+            '北京全聚德食品厂',
+            '北京二商集团有限责任公司'
+        ];
+        var dates = ['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30', '2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03'];
+        // 明细字段选项
+        var foodCategories = ['调味品', '食用农产品', '餐饮食品', '乳制品'];
+        var foodSubCategories = ['酱油', '蔬菜', '米面制品', '液体乳'];
+        var foodSubSubCategories = ['酱油', '茄果类蔬菜', '瓜类蔬菜', '叶菜类蔬菜', '普通酱油', '食用盐', '发酵面制品', '巴氏杀菌乳'];
+        var foodFineCategories = ['酱油', '甜椒', '黄瓜', '普通白菜', '辣椒', '普通食用盐', '其他发酵面制品', '巴氏杀菌乳'];
+        var reportCategoryA = ['抽检监测（省级专项）', '监督抽检', '风险监测'];
+        var reportCategoryB = ['2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', '2026年北京市食品安全监督抽检计划', '2026年北京市食品安全风险监测计划'];
+        var taskSources = ['北京市市场监督管理局', '北京市朝阳区市场监督管理局', '北京市通州区市场监督管理局'];
+        var taskCategories = ['监督抽检', '风险监测', '评价性抽检'];
+        var sampleNames = ['一品鲜（酿造酱油）', '黄彩椒（蔬菜）', '（食用）盐', '黄瓜', '小油菜', '红尖椒（蔬菜）', '普通小麦粉', '巴氏杀菌乳'];
+        var packageTypes = ['预包装', '无包装', '散装'];
+        var sampleTypes = ['工业加工食品', '食用农产品', '餐饮加工食品', '乳制品'];
+        var qualityGrades = ['特级', '优级', '一级', '普通', '/'];
+        var samplingMethods = ['非无菌抽样', '无菌抽样'];
+        var trademarks = ['/', '淮盐和图形', '海天', '伊利', '蒙牛'];
+
+        // 简易种子随机数生成器，保证数据可复现
+        function seededRandom(seed) {
+            var x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+        function randInt(seed, max) { return Math.floor(seededRandom(seed) * max); }
+
+        // 生成50条一致且真实的模拟数据
+        var rawData = [];
+        for (var i = 0; i < 50; i++) {
+            var seed = i * 12.9898 + 78.233;
+            var instIdx = randInt(seed, institutions.length);
+            var entIdx = randInt(seed + 1, enterprises.length);
+            var dateIdx = randInt(seed + 2, dates.length);
+            var catIdx = randInt(seed + 3, categories.length);
+            // 状态分布：10%退回，25%待填报，25%检验中，40%已完全提交
+            var statusRand = seededRandom(seed + 4);
+            var statusIdx = statusRand < 0.1 ? 0 : (statusRand < 0.35 ? 1 : (statusRand < 0.6 ? 2 : 3));
+            var isUnqualified = seededRandom(seed + 5) < 0.15;
+            var hasIssue = seededRandom(seed + 6) < 0.25;
+            var hasRisk = seededRandom(seed + 7) < 0.08;
+            rawData.push({
+                id: i + 1,
+                sampleNo: 'DBJ2611' + String(1000000 + i).slice(-6) + 'ZX',
+                institution: institutions[instIdx],
+                status: sampleStatuses[statusIdx],
+                enterprise: enterprises[entIdx],
+                sampleDate: dates[dateIdx],
+                category: categories[catIdx],
+                isUnqualified: isUnqualified,
+                hasIssue: hasIssue,
+                hasRisk: hasRisk,
+                // 明细字段
+                foodCategory: foodCategories[catIdx % foodCategories.length],
+                foodSubCategory: foodSubCategories[catIdx % foodSubCategories.length],
+                foodSubSubCategory: foodSubSubCategories[randInt(seed + 8, foodSubSubCategories.length)],
+                foodFineCategory: foodFineCategories[randInt(seed + 9, foodFineCategories.length)],
+                reportCategoryA: reportCategoryA[randInt(seed + 10, reportCategoryA.length)],
+                reportCategoryB: reportCategoryB[randInt(seed + 11, reportCategoryB.length)],
+                taskSource: taskSources[randInt(seed + 12, taskSources.length)],
+                taskCategory: taskCategories[randInt(seed + 13, taskCategories.length)],
+                sampleName: sampleNames[randInt(seed + 14, sampleNames.length)],
+                packageType: packageTypes[randInt(seed + 15, packageTypes.length)],
+                sampleType: sampleTypes[randInt(seed + 16, sampleTypes.length)],
+                qualityGrade: qualityGrades[randInt(seed + 17, qualityGrades.length)],
+                samplingMethod: samplingMethods[randInt(seed + 18, samplingMethods.length)],
+                trademark: trademarks[randInt(seed + 19, trademarks.length)],
+                sampleSource: '外购'
+            });
+        }
+
+        // ============ 统计计算 ============
+        function computeStats(data) {
+            var result = {
+                totalTask: data.length,
+                samplingDone: 0,
+                inspectionDone: 0,
+                unqualifiedCount: 0,
+                issueCount: 0,
+                riskCount: 0,
+                enterprises: new Set(),
+                institutionMap: {},
+                repeatMap: {}
+            };
+
+            data.forEach(function(item) {
+                // 抽样完成：除了退回接样平台
+                if (item.status !== '退回接样平台') {
+                    result.samplingDone++;
+                    result.enterprises.add(item.enterprise);
+                }
+                // 检验完成：已完全提交
+                if (item.status === '已完全提交') {
+                    result.inspectionDone++;
+                    if (item.isUnqualified) result.unqualifiedCount++;
+                    if (item.hasIssue) result.issueCount++;
+                    if (item.hasRisk) result.riskCount++;
+                }
+
+                // 机构维度统计
+                if (!result.institutionMap[item.institution]) {
+                    result.institutionMap[item.institution] = {
+                        name: item.institution,
+                        totalTask: 0,
+                        samplingDone: 0,
+                        inspectionDone: 0,
+                        unqualifiedCount: 0,
+                        issueCount: 0,
+                        riskCount: 0,
+                        enterprises: new Set()
+                    };
+                }
+                var inst = result.institutionMap[item.institution];
+                inst.totalTask++;
+                if (item.status !== '退回接样平台') {
+                    inst.samplingDone++;
+                    inst.enterprises.add(item.enterprise);
+                }
+                if (item.status === '已完全提交') {
+                    inst.inspectionDone++;
+                    if (item.isUnqualified) inst.unqualifiedCount++;
+                    if (item.hasIssue) inst.issueCount++;
+                    if (item.hasRisk) inst.riskCount++;
+                }
+
+                // 重复抽检：同机构+同日期+同企业
+                if (item.status !== '退回接样平台') {
+                    var repeatKey = item.institution + '||' + item.sampleDate + '||' + item.enterprise;
+                    if (!result.repeatMap[repeatKey]) {
+                        result.repeatMap[repeatKey] = { institution: item.institution, sampleDate: item.sampleDate, enterprise: item.enterprise, count: 0, superviseCount: 0, riskCount: 0 };
+                    }
+                    result.repeatMap[repeatKey].count++;
+                    if (item.taskCategory === '监督抽检') result.repeatMap[repeatKey].superviseCount++;
+                    if (item.taskCategory === '风险监测') result.repeatMap[repeatKey].riskCount++;
+                }
+            });
+
+            return result;
+        }
+
+        // ============ 渲染统计卡片 ============
+        function renderCards(stats) {
+            var coverageCount = stats.enterprises.size;
+            document.getElementById('cardTotalTask').innerHTML = stats.totalTask + '<span class="stat-unit">批次</span>';
+            document.getElementById('cardTotalTaskSub').textContent = Object.keys(stats.institutionMap).length + ' 家机构';
+
+            var samplingRate = stats.totalTask > 0 ? ((stats.samplingDone / stats.totalTask) * 100).toFixed(1) : '0.0';
+            document.getElementById('cardSamplingDone').innerHTML = stats.samplingDone + '<span class="stat-unit">批次</span>';
+            document.getElementById('cardSamplingRate').textContent = samplingRate + '% 完成率';
+
+            var inspectionRate = stats.totalTask > 0 ? ((stats.inspectionDone / stats.totalTask) * 100).toFixed(1) : '0.0';
+            document.getElementById('cardInspectionDone').innerHTML = stats.inspectionDone + '<span class="stat-unit">批次</span>';
+            document.getElementById('cardInspectionRate').textContent = inspectionRate + '% 完成率';
+
+            var coverageRate = stats.samplingDone > 0 ? ((coverageCount / stats.samplingDone) * 100).toFixed(1) : '0.0';
+            document.getElementById('cardCoverEnterprises').innerHTML = coverageCount + '<span class="stat-unit">家</span>';
+        }
+
+        // ============ 渲染概况表格 ============
+        function renderOverviewTable(stats) {
+            var tbody = document.getElementById('overviewTableBody');
+            var insts = Object.values(stats.institutionMap).sort(function(a, b) { return b.totalTask - a.totalTask; });
+
+            if (insts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">暂无数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = insts.map(function(inst, idx) {
+                var unqualifiedRate = inst.inspectionDone > 0 ? ((inst.unqualifiedCount / inst.inspectionDone) * 100).toFixed(1) : '0.0';
+                var issueRate = inst.inspectionDone > 0 ? ((inst.issueCount / inst.inspectionDone) * 100).toFixed(1) : '0.0';
+                var riskRate = inst.inspectionDone > 0 ? ((inst.riskCount / inst.inspectionDone) * 100).toFixed(1) : '0.0';
+                var coverageRate = inst.samplingDone > 0 ? ((inst.enterprises.size / inst.samplingDone) * 100).toFixed(1) : '0.0';
+
+                var instName = inst.name.replace(/'/g, "\\'");
+                return '<tr>' +
+                    '<td class="center">' + (idx + 1) + '</td>' +
+                    '<td>' + inst.name + '</td>' +
+                    '<td class="right"><a class="clickable-num" >' + inst.totalTask + '</a></td>' +
+                    '<td class="right"><a class="clickable-num" >' + inst.samplingDone + '</a></td>' +
+                    '<td class="right"><a class="clickable-num" >' + inst.inspectionDone + '</a></td>' +
+                    '<td><div class="progress-cell"><div class="progress-bar"><div class="progress-fill red" style="width:' + Math.min(unqualifiedRate, 100) + '%"></div></div><span>' + unqualifiedRate + '%</span></div></td>' +
+                    '<td><div class="progress-cell"><div class="progress-bar"><div class="progress-fill orange" style="width:' + Math.min(issueRate, 100) + '%"></div></div><span>' + issueRate + '%</span></div></td>' +
+                    '<td><div class="progress-cell"><div class="progress-bar"><div class="progress-fill green" style="width:' + Math.min(riskRate, 100) + '%"></div></div><span>' + riskRate + '%</span></div></td>' +
+                    '<td class="right"><a class="clickable-num" >' + inst.enterprises.size + '</a></td>' +
+                    '<td class="right"><span class="badge badge-green">' + coverageRate + '%</span></td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        // ============ 渲染重复抽检表格 ============
+        var staticRepeatRows = null; // 保留 tbody 中预置的静态测试行
+        function renderRepeatTable(stats) {
+            var tbody = document.getElementById('repeatTableBody');
+            if (staticRepeatRows === null) staticRepeatRows = tbody.innerHTML;
+
+            var threshold = parseInt(document.getElementById('repeatThreshold').value, 10);
+            if (isNaN(threshold) || threshold < 1) threshold = 0;
+
+            var list = Object.values(stats.repeatMap).map(function(i) {
+                i.combined = i.superviseCount + i.riskCount;
+                return i;
+            }).filter(function(i) {
+                return i.combined >= threshold;
+            }).sort(function(a, b) {
+                return b.combined - a.combined;
+            });
+
+            var staticOffset = 2; // 静态测试行占 2 行
+            if (list.length === 0) {
+                tbody.innerHTML = staticRepeatRows;
+                return;
+            }
+
+            tbody.innerHTML = staticRepeatRows + list.map(function(item, idx) {
+                var inst = item.institution.replace(/'/g, "\\'");
+                var ent = item.enterprise.replace(/'/g, "\\'");
+                var dt = item.sampleDate;
+                return '<tr>' +
+                    '<td class="center">' + (staticOffset + idx + 1) + '</td>' +
+                    '<td>' + item.institution + '</td>' +
+                    '<td>' + item.sampleDate + '</td>' +
+                    '<td>' + item.enterprise + '</td>' +
+                    '<td class="center">' + item.superviseCount + '</td>' +
+                    '<td class="center">' + item.riskCount + '</td>' +
+                    '<td class="center"><a class="clickable-num" onclick="showRepeatDetailModal(\'' + inst + '\', \'' + dt + '\', \'' + ent + '\')"><strong>' + item.combined + '</strong></a></td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        // ============ 按阈值查询重复抽检 ============
+        function queryRepeat() {
+            var thresholdInput = document.getElementById('repeatThreshold');
+            var threshold = parseInt(thresholdInput.value, 10);
+            if (isNaN(threshold) || threshold < 1) {
+                alert('请输入大于等于 1 的重复批次阈值');
+                thresholdInput.focus();
+                return;
+            }
+            var stats = computeStats(rawData.slice());
+            renderRepeatTable(stats);
+        }
+
+        // ============ 全量渲染 ============
+        function renderAll() {
+            var data = rawData.slice();
+            var stats = computeStats(data);
+            renderCards(stats);
+            renderOverviewTable(stats);
+            renderRepeatTable(stats);
+        }
+
+        // ============ 详情弹窗 ============
+        var metricLabels = {
+            totalTask: '任务总数',
+            samplingDone: '抽样完成数',
+            inspectionDone: '检验完成数',
+            coverEnterprises: '覆盖企业数'
+        };
+
+        function showDetailModal(institutionName, metric) {
+            var records = rawData.filter(function(d) { return d.institution === institutionName; });
+
+            // 根据指标过滤记录
+            if (metric === 'samplingDone') {
+                records = records.filter(function(d) { return d.status !== '退回接样平台'; });
+            } else if (metric === 'inspectionDone') {
+                records = records.filter(function(d) { return d.status === '已完全提交'; });
+            } else if (metric === 'coverEnterprises') {
+                // 覆盖企业数：每个企业只保留一条记录（去重）
+                var seen = {};
+                records = records.filter(function(d) {
+                    if (d.status === '退回接样平台') return false;
+                    if (seen[d.enterprise]) return false;
+                    seen[d.enterprise] = true;
+                    return true;
+                });
+            }
+
+            document.getElementById('detailModalTitle').textContent = institutionName + ' - ' + metricLabels[metric] + ' 明细';
+            document.getElementById('detailModalInfo').innerHTML =
+                '<strong>抽检机构：</strong>' + institutionName +
+                '&nbsp;&nbsp;&nbsp;<strong>指标：</strong>' + metricLabels[metric] +
+                '&nbsp;&nbsp;&nbsp;<strong>记录数：</strong>' + records.length;
+
+            var tbody = document.getElementById('detailTableBody');
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="16" class="empty-state">暂无数据</td></tr>';
+            } else {
+                tbody.innerHTML = records.map(function(d) {
+                    return '<tr>' +
+                        '<td>' + d.sampleNo + '</td>' +
+                        '<td>' + d.foodCategory + '</td>' +
+                        '<td>' + d.foodSubCategory + '</td>' +
+                        '<td>' + d.foodSubSubCategory + '</td>' +
+                        '<td>' + d.foodFineCategory + '</td>' +
+                        '<td>' + d.reportCategoryA + '</td>' +
+                        '<td><span class="ellipsis" title="' + d.reportCategoryB + '">' + d.reportCategoryB + '</span></td>' +
+                        '<td>' + d.taskSource + '</td>' +
+                        '<td>' + d.taskCategory + '</td>' +
+                        '<td>' + d.sampleName + '</td>' +
+                        '<td>' + d.packageType + '</td>' +
+                        '<td>' + d.sampleType + '</td>' +
+                        '<td>' + d.qualityGrade + '</td>' +
+                        '<td>' + d.samplingMethod + '</td>' +
+                        '<td>' + d.trademark + '</td>' +
+                        '<td>' + d.sampleSource + '</td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        // ============ 重复抽检详情弹窗 ============
+        function showRepeatDetailModal(institutionName, sampleDate, enterpriseName) {
+            var records = rawData.filter(function(d) {
+                return d.institution === institutionName &&
+                       d.sampleDate === sampleDate &&
+                       d.enterprise === enterpriseName &&
+                       d.status !== '退回接样平台';
+            });
+
+            var superviseNum = records.filter(function(d) { return d.taskCategory === '监督抽检'; }).length;
+            var riskNum = records.filter(function(d) { return d.taskCategory === '风险监测'; }).length;
+
+            document.getElementById('detailModalTitle').textContent = '重复抽检明细 - ' + enterpriseName;
+            document.getElementById('detailModalInfo').innerHTML =
+                '<strong>抽检机构：</strong>' + institutionName +
+                '&nbsp;&nbsp;&nbsp;<strong>抽样日期：</strong>' + sampleDate +
+                '&nbsp;&nbsp;&nbsp;<strong>被抽样单位：</strong>' + enterpriseName +
+                '&nbsp;&nbsp;&nbsp;<strong>监督抽检批次数：</strong>' + superviseNum +
+                '&nbsp;&nbsp;&nbsp;<strong>风险抽检批次数：</strong>' + riskNum +
+                '&nbsp;&nbsp;&nbsp;<strong>监督抽检和风险抽检批次数：</strong>' + (superviseNum + riskNum);
+
+            var tbody = document.getElementById('detailTableBody');
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="16" class="empty-state">暂无数据</td></tr>';
+            } else {
+                tbody.innerHTML = records.map(function(d) {
+                    return '<tr>' +
+                        '<td>' + d.sampleNo + '</td>' +
+                        '<td>' + d.foodCategory + '</td>' +
+                        '<td>' + d.foodSubCategory + '</td>' +
+                        '<td>' + d.foodSubSubCategory + '</td>' +
+                        '<td>' + d.foodFineCategory + '</td>' +
+                        '<td>' + d.reportCategoryA + '</td>' +
+                        '<td><span class="ellipsis" title="' + d.reportCategoryB + '">' + d.reportCategoryB + '</span></td>' +
+                        '<td>' + d.taskSource + '</td>' +
+                        '<td>' + d.taskCategory + '</td>' +
+                        '<td>' + d.sampleName + '</td>' +
+                        '<td>' + d.packageType + '</td>' +
+                        '<td>' + d.sampleType + '</td>' +
+                        '<td>' + d.qualityGrade + '</td>' +
+                        '<td>' + d.samplingMethod + '</td>' +
+                        '<td>' + d.trademark + '</td>' +
+                        '<td>' + d.sampleSource + '</td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        // ============ 修改重复抽检记录 ============
+        function editRepeatRecord(institutionName, sampleDate, enterpriseName) {
+            alert('修改重复抽检记录：\n\n抽检机构：' + institutionName + '\n抽样日期：' + sampleDate + '\n被抽样单位：' + enterpriseName + '\n\n（此处可接入修改表单页面）');
+        }
+
+        // 点击遮罩关闭弹窗
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDetailModal();
+        });
+
+        // 阈值输入框回车触发查询
+        document.getElementById('repeatThreshold').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') queryRepeat();
+        });
+
+        // 初始化
+        renderAll();
+    </script>
+</body>
+</html>

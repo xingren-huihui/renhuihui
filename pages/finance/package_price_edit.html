@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打包价管理 - 编制</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; }
+
+        .page-header { background: #fff; padding: 14px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+        .page-title { font-size: 16px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
+        .page-title .breadcrumb { font-size: 13px; color: #999; font-weight: normal; }
+        .page-title .breadcrumb .sep { margin: 0 6px; color: #ccc; }
+        .page-title .breadcrumb .current { color: #333; font-weight: 500; }
+
+        .content { padding: 20px 24px 80px; max-width: 1400px; margin: 0 auto; }
+
+        .section-card { background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 16px; overflow: hidden; }
+        .section-title { padding: 12px 20px; font-size: 14px; font-weight: 600; color: #333; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .section-title .title-icon { display: inline-block; width: 4px; height: 14px; background: #1e73be; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+        .section-title .action-link { font-size: 12px; color: #999; cursor: pointer; font-weight: normal; }
+        .section-title .action-link:hover { color: #1e73be; }
+        .section-body { padding: 20px; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 40px; }
+        .form-item { display: flex; flex-direction: column; gap: 6px; }
+        .form-label { font-size: 13px; color: #666; font-weight: 500; }
+        .form-label .required { color: #c62828; margin-right: 3px; }
+        .form-input, .form-select { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; outline: none; background: #fff; font-family: inherit; }
+        .form-input:focus, .form-select:focus { border-color: #1e73be; box-shadow: 0 0 0 2px rgba(30,115,190,0.12); }
+        .form-input[readonly] { background: #fafafa; color: #666; cursor: not-allowed; }
+
+        /* 双列检验项目选择 */
+        .dual-list { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: start; }
+        .list-box { border: 1px solid #e8e8e8; border-radius: 4px; background: #fff; }
+        .list-box-header { padding: 8px 12px; background: #fafbfc; border-bottom: 1px solid #e8e8e8; font-size: 13px; color: #666; display: flex; justify-content: space-between; align-items: center; }
+        .list-box-header .count { font-size: 12px; color: #999; }
+        .list-box-search { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+        .list-box-search input { width: 100%; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; outline: none; }
+        .list-box-search input:focus { border-color: #1e73be; }
+        .list-box-body { max-height: 280px; overflow-y: auto; padding: 4px; }
+        .list-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 3px; cursor: pointer; font-size: 13px; transition: background 0.15s; }
+        .list-item:hover { background: #f0f7ff; }
+        .list-item.selected { background: #e6f0ff; color: #1e73be; }
+        .list-item input[type="checkbox"] { margin: 0; cursor: pointer; }
+        .list-empty { text-align: center; padding: 40px 10px; color: #bbb; font-size: 13px; }
+
+        .list-controls { display: flex; flex-direction: column; gap: 10px; padding-top: 40px; }
+        .list-btn { width: 42px; height: 42px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; cursor: pointer; font-size: 16px; color: #666; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+        .list-btn:hover:not(:disabled) { border-color: #1e73be; color: #1e73be; background: #f0f5ff; }
+        .list-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* 食品分类表格 */
+        .food-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .food-table th { background: #fafbfc; font-weight: 600; color: #666; font-size: 12px; padding: 10px 12px; text-align: left; border-bottom: 1px solid #e8e8e8; }
+        .food-table th .required { color: #c62828; margin-right: 2px; }
+        .food-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+        .food-table .center { text-align: center; }
+        .food-table input, .food-table select { width: 100%; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 3px; font-size: 13px; outline: none; }
+        .food-table input:focus, .food-table select:focus { border-color: #1e73be; }
+
+        .btn { padding: 6px 18px; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .btn-danger { background: #fff; color: #c62828; border: 1px solid #c62828; }
+        .btn-danger:hover { background: #ffebee; }
+        .btn-primary { background: #1e73be; color: #fff; }
+        .btn-primary:hover { background: #1a64a5; }
+        .btn-secondary { background: #fff; color: #666; border: 1px solid #d9d9d9; }
+        .btn-secondary:hover { color: #1e73be; border-color: #1e73be; }
+        .btn-success { background: #52c41a; color: #fff; }
+        .btn-success:hover { background: #49b219; }
+        .btn-sm { padding: 4px 12px; font-size: 12px; }
+        .btn-add-row { width: 100%; padding: 10px; margin-top: 8px; border: 1px dashed #d9d9d9; border-radius: 4px; background: #fafbfc; color: #1e73be; cursor: pointer; font-size: 13px; }
+        .btn-add-row:hover { background: #f0f5ff; border-color: #1e73be; }
+
+        /* 底部固定操作栏 */
+        .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #f0f0f0; padding: 14px 24px; display: flex; justify-content: center; gap: 16px; box-shadow: 0 -2px 8px rgba(0,0,0,0.04); z-index: 100; }
+
+        .empty-table { text-align: center; padding: 40px 20px; color: #bbb; font-size: 13px; }
+
+        /* 响应式 */
+        @media (max-width: 1100px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 800px) { .form-grid { grid-template-columns: 1fr; } .dual-list { grid-template-columns: 1fr; } .list-controls { flex-direction: row; padding-top: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <div class="page-title">
+            <span class="breadcrumb"><a href="package_price.html" style="color:#1e73be;text-decoration:none;">打包价管理</a><span class="sep">/</span><span class="current" id="pageTitleSuffix">编制</span></span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- 基本信息 -->
+        <div class="section-card">
+            <div class="section-title"><span><span class="title-icon"></span>基本信息</span></div>
+            <div class="section-body">
+                <div class="form-grid">
+                    <div class="form-item">
+                        <label class="form-label"><span class="required">*</span>报送分类2</label>
+                        <select class="form-select" id="fReport">
+                            <option value="">请选择</option>
+                            <option>抽检监测（省级专项）</option>
+                            <option>监督抽检</option>
+                            <option>风险监测</option>
+                        </select>
+                    </div>
+                    <div class="form-item">
+                        <label class="form-label"><span class="required">*</span>打包价名称</label>
+                        <input type="text" class="form-input" id="fName" placeholder="请输入打包价名称">
+                    </div>
+                    <div class="form-item">
+                        <label class="form-label"><span class="required">*</span>打包规则</label>
+                        <select class="form-select" id="fRule">
+                            <option value="">请选择</option>
+                            <option>单项价格相同，按个数加价</option>
+                            <option>固定总价</option>
+                            <option>单价相同，按个数加价，有最高限价</option>
+                        </select>
+                    </div>
+                    <div class="form-item">
+                        <label class="form-label">基础价格（元）</label>
+                        <input type="number" class="form-input" id="fBasePrice" placeholder="请输入基础价格" step="0.01">
+                    </div>
+                    <div class="form-item">
+                        <label class="form-label">最高限价（元）</label>
+                        <input type="number" class="form-input" id="fMaxPrice" placeholder="请输入最高限价" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 配置组合（检验项目双列选择器） -->
+        <div class="section-card">
+            <div class="section-title">
+                <span><span class="title-icon"></span>检验项目组合（勾选后点击添加）</span>
+                <span class="action-link" onclick="toggleCollapse('section2')">收起</span>
+            </div>
+            <div class="section-body">
+                <div class="dual-list">
+                    <!-- 待选列表 -->
+                    <div class="list-box">
+                        <div class="list-box-header">
+                            <span>检验项目库</span>
+                            <span class="count" id="leftCount">0项</span>
+                        </div>
+                        <div class="list-box-search">
+                            <input type="text" placeholder="输入项目名称搜索..." id="leftSearch" oninput="renderListBox('left')">
+                        </div>
+                        <div class="list-box-body" id="leftList"></div>
+                    </div>
+
+                    <div class="list-controls">
+                        <button class="list-btn" id="btnAdd" onclick="addToRight()" title="添加">›</button>
+                        <button class="list-btn" id="btnRemove" onclick="removeToLeft()" title="移除">‹</button>
+                        <button class="list-btn" id="btnAddAll" onclick="addAllToRight()" title="全部添加">»</button>
+                        <button class="list-btn" id="btnRemoveAll" onclick="removeAllToLeft()" title="全部移除">«</button>
+                    </div>
+
+                    <!-- 已选列表 -->
+                    <div class="list-box">
+                        <div class="list-box-header">
+                            <span>已选检验项目</span>
+                            <span class="count" id="rightCount">0项</span>
+                        </div>
+                        <div class="list-box-search">
+                            <input type="text" placeholder="输入项目名称搜索..." id="rightSearch" oninput="renderListBox('right')">
+                        </div>
+                        <div class="list-box-body" id="rightList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 食品分类 -->
+        <div class="section-card">
+            <div class="section-title">
+                <span><span class="title-icon"></span>食品分类</span>
+                <span class="action-link" onclick="toggleCollapse('section3')">收起</span>
+            </div>
+            <div class="section-body">
+                <table class="food-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px;" class="center">序号</th>
+                            <th><span class="required">*</span>食品大类（一级）</th>
+                            <th><span class="required">*</span>食品亚类（二级）</th>
+                            <th><span class="required">*</span>食品次亚类（三级）</th>
+                            <th><span class="required">*</span>食品细类（四级）</th>
+                            <th style="width:120px;" class="center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="foodTableBody"></tbody>
+                </table>
+                <button class="btn-add-row" onclick="addFoodRow()">+ 新增食品分类</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer-bar">
+        <button class="btn btn-secondary" onclick="goBack()">← 返回</button>
+        <button class="btn btn-primary" onclick="saveData()">保存</button>
+    </div>
+
+<script>
+    // ============ URL参数解析 ============
+    var params = new URLSearchParams(window.location.search);
+    var editMode = params.get('mode') || 'edit';
+    var editId = parseInt(params.get('id')) || 0;
+
+    document.getElementById('pageTitleSuffix').textContent = editMode === 'add' ? '新增' : '编制';
+    document.title = editMode === 'add' ? '打包价管理 - 新增' : '打包价管理 - 编制';
+
+    // ============ 模拟数据（与列表页一致） ============
+    var allItems = [
+        '磺胺嘧啶', '磺胺邻二甲氧嘧啶', '磺胺间甲氧嘧啶', '磺胺噻唑', '磺胺二甲嘧啶',
+        '甲氧苄啶', '磺胺类（总量）',
+        '(花生酸+山嵛酸)/总脂肪酸', '亚油酸/总脂肪酸', '月桂酸/总脂肪酸', '棕榈酸/总脂肪酸',
+        '双氯青霉素', '乙氧萘青霉素', '甲氧苯青霉素', '青霉素G', '青霉素V',
+        '高氯酸盐', '氯酸盐',
+        '氯氰菊酯', '特乐酚', '灭螨腈', '甲氰菊酯', '氯菊酯', '溴氰菊酯', '氰戊菊酯',
+        '氟虫腈', '氟虫腈亚砜', '氟甲腈', '氟虫腈砜',
+        '非诺特罗', '氯丙那林',
+        '头孢喹肟', '头孢氨苄', '头孢喹啉', '头孢匹林', '头孢拉定', '头孢丙烯',
+        '羟甲基甲硝咪唑', '羟基甲硝咪唑', '洛硝达唑', '甲硝唑',
+        '铅', '镉', '汞', '砷', '铬', '镍', '铜', '锌', '锡', '锑',
+        '黄曲霉毒素B1', '黄曲霉毒素M1', '赭曲霉毒素A', '呕吐毒素', '玉米赤霉烯酮',
+        '邻苯二甲酸二乙酯', '邻苯二甲酸二丁酯', '邻苯二甲酸二辛酯'
+    ];
+
+    // 食品分类选项
+    var foodBigCats = ['调味品', '油脂', '水果制品', '乳制品', '茶叶及相关制品', '肉制品', '粮食加工品', '蔬菜制品'];
+    var foodMidMap = {
+        '调味品': ['酱油', '食用盐', '食醋', '味精', '复合调味料'],
+        '油脂': ['植物油', '动物油', '油脂制品'],
+        '水果制品': ['水果罐头', '果汁', '果脯', '蜜饯'],
+        '乳制品': ['液体乳', '乳粉', '乳制品'],
+        '茶叶及相关制品': ['绿茶', '红茶', '乌龙茶', '代用茶'],
+        '肉制品': ['鲜食肉', '腊肉制品', '熟肉制品', '预制肉制品'],
+        '粮食加工品': ['小麦粉', '大米', '米粉', '挂面'],
+        '蔬菜制品': ['腌菜', '酱菜', '速冻蔬菜', '脱水蔬菜']
+    };
+    var foodSubMap = {
+        '酱油': ['酿造酱油', '配制酱油'],
+        '食用盐': ['普通食用盐', '加碘食用盐', '低钠盐'],
+        '食醋': ['酿造食醋', '配制食醋'],
+        '味精': ['谷氨酸钠', '复配味精'],
+        '复合调味料': ['火锅底料', '调味酱', '其他复合调味料'],
+        '植物油': ['豆油', '花生油', '菜籽油', '橄榄油', '其他植物油'],
+        '动物油': ['猪油', '牛油', '其他动物油'],
+        '油脂制品': ['氢化植物油', '人造黄油'],
+        '水果罐头': ['罐装水果', '果酱'],
+        '果汁': ['浓缩果汁', 'NFC果汁'],
+        '果脯': ['苹果脯', '杏脯', '其他果脯'],
+        '蜜饯': ['话梅', '葡萄干', '其他蜜饯'],
+        '液体乳': ['巴氏杀菌乳', '灭菌乳', '调制乳', '发酵乳'],
+        '乳粉': ['全脂乳粉', '脱脂乳粉', '婴幼儿配方乳粉'],
+        '乳制品': ['炼乳', '奶油', '干酪', '其他乳制品'],
+        '绿茶': ['龙井', '碧螺春', '其他绿茶'],
+        '红茶': ['正山小种', '祁门红茶', '其他红茶'],
+        '乌龙茶': ['铁观音', '大红袍', '其他乌龙茶'],
+        '代用茶': ['袋泡茶', '花草茶'],
+        '鲜食肉': ['冷鲜肉', '冷冻肉'],
+        '腊肉制品': ['腌肉', '熏肉'],
+        '熟肉制品': ['香肠', '火腿', '烤肉'],
+        '预制肉制品': ['调理肉串', '调理牛排'],
+        '小麦粉': ['通用小麦粉', '专用小麦粉'],
+        '大米': ['粳米', '籼米', '糯米'],
+        '米粉': ['米粉干', '方便米粉'],
+        '挂面': ['普通挂面', '花色挂面', '手工挂面'],
+        '腌菜': ['酸菜', '泡菜', '其他腌菜'],
+        '酱菜': ['酱黄瓜', '酱萝卜', '其他酱菜'],
+        '速冻蔬菜': ['速冻叶菜', '速冻根茎菜'],
+        '脱水蔬菜': ['干菜', '蔬菜粉']
+    };
+    var foodFineMap = {
+        '酿造酱油': ['酿造酱油（高盐稀态）', '酿造酱油（低盐固态）'],
+        '配制酱油': ['配制酱油'],
+        '普通食用盐': ['普通食用盐'],
+        '加碘食用盐': ['加碘食用盐'],
+        '低钠盐': ['低钠盐'],
+        '酿造食醋': ['酿造食醋'],
+        '配制食醋': ['配制食醋'],
+        '谷氨酸钠': ['味精（谷氨酸钠99%）'],
+        '复配味精': ['复配味精'],
+        '复合调味料': ['火锅底料', '调味酱', '其他复合调味料'],
+        '植物油': ['豆油', '花生油', '菜籽油', '橄榄油', '其他植物油'],
+        '动物油': ['猪油', '牛油', '其他动物油'],
+        '油脂制品': ['氢化植物油', '人造黄油'],
+        '水果罐头': ['罐装水果', '果酱'],
+        '果汁': ['浓缩果汁', 'NFC果汁'],
+        '果脯': ['苹果脯', '杏脯', '其他果脯'],
+        '蜜饯': ['话梅', '葡萄干', '其他蜜饯'],
+        '液体乳': ['巴氏杀菌乳', '灭菌乳', '调制乳', '发酵乳'],
+        '乳粉': ['全脂乳粉', '脱脂乳粉', '婴幼儿配方乳粉'],
+        '乳制品': ['炼乳', '奶油', '干酪', '其他乳制品'],
+        '绿茶': ['龙井', '碧螺春', '其他绿茶'],
+        '红茶': ['正山小种', '祁门红茶', '其他红茶'],
+        '乌龙茶': ['铁观音', '大红袍', '其他乌龙茶'],
+        '代用茶': ['袋泡茶', '花草茶'],
+        '鲜食肉': ['冷鲜肉', '冷冻肉'],
+        '腊肉制品': ['腌肉', '熏肉'],
+        '熟肉制品': ['香肠', '火腿', '烤肉'],
+        '预制肉制品': ['调理肉串', '调理牛排'],
+        '小麦粉': ['通用小麦粉', '专用小麦粉'],
+        '大米': ['粳米', '籼米', '糯米'],
+        '米粉': ['米粉干', '方便米粉'],
+        '挂面': ['普通挂面', '花色挂面', '手工挂面'],
+        '腌菜': ['酸菜', '泡菜', '其他腌菜'],
+        '酱菜': ['酱黄瓜', '酱萝卜', '其他酱菜'],
+        '速冻蔬菜': ['速冻叶菜', '速冻根茎菜'],
+        '脱水蔬菜': ['干菜', '蔬菜粉']
+    };
+
+    // 空选项数组（动态级联用）
+    var emptyOpts = ['请选择'];
+
+    // 待选 / 已选
+    var leftItems = allItems.slice();
+    var rightItems = [];
+    var leftSelected = {};
+    var rightSelected = {};
+
+    // 食品分类行数据
+    var foodRows = [];
+
+    // ============ 初始化 ============
+    function init() {
+        renderListBox('left');
+        renderListBox('right');
+
+        if (editMode === 'edit' && editId) {
+            // 编辑模式：模拟填充数据
+            loadEditData(editId);
+        }
+
+        updateListCounts();
+    }
+
+    function loadEditData(id) {
+        // 根据ID模拟填充
+        var mockEdit = {
+            report: '抽检监测（省级专项）',
+            name: '磺胺类',
+            rule: '单项价格相同，按个数加价',
+            basePrice: 1200,
+            maxPrice: null,
+            items: ['磺胺嘧啶', '磺胺邻二甲氧嘧啶', '磺胺间甲氧嘧啶', '磺胺噻唑', '磺胺二甲嘧啶', '甲氧苄啶'],
+            foods: [
+                { big: '调味品', mid: '酱油', sub: '酿造酱油', fine: '酿造酱油（高盐稀态）' },
+                { big: '调味品', mid: '食用盐', sub: '普通食用盐', fine: '普通食用盐' }
+            ]
+        };
+        document.getElementById('fReport').value = mockEdit.report;
+        document.getElementById('fName').value = mockEdit.name;
+        document.getElementById('fRule').value = mockEdit.rule;
+        document.getElementById('fBasePrice').value = mockEdit.basePrice;
+        if (mockEdit.maxPrice) document.getElementById('fMaxPrice').value = mockEdit.maxPrice;
+
+        // 从左侧移除已选
+        rightItems = mockEdit.items.slice();
+        leftItems = allItems.filter(function(x) { return mockEdit.items.indexOf(x) === -1; });
+
+        foodRows = mockEdit.foods.slice();
+        renderFoodTable();
+    }
+
+    // ============ 双列列表 ============
+    function renderListBox(side) {
+        var searchVal = document.getElementById(side === 'left' ? 'leftSearch' : 'rightSearch').value.trim();
+        var items = side === 'left' ? leftItems : rightItems;
+        var selected = side === 'left' ? leftSelected : rightSelected;
+        var box = document.getElementById(side === 'left' ? 'leftList' : 'rightList');
+
+        var filtered = items.filter(function(x) {
+            if (!searchVal) return true;
+            return x.indexOf(searchVal) !== -1;
+        });
+
+        if (filtered.length === 0) {
+            box.innerHTML = '<div class="list-empty">' + (items.length === 0 ? '（已全部添加）' : '无匹配项目') + '</div>';
+        } else {
+            box.innerHTML = filtered.map(function(x) {
+                var checked = selected[x] ? 'checked' : '';
+                return '<label class="list-item' + (selected[x] ? ' selected' : '') + '">' +
+                    '<input type="checkbox" ' + checked + ' onchange="toggleSel(\'' + side + '\', \'' + x.replace(/'/g, "\\'") + '\')">' +
+                    '<span>' + x + '</span></label>';
+            }).join('');
+        }
+    }
+
+    function toggleSel(side, name) {
+        var map = side === 'left' ? leftSelected : rightSelected;
+        map[name] = !map[name];
+        renderListBox(side);
+    }
+
+    function toggleAll(side, checked) {
+        var items = side === 'left' ? leftItems : rightItems;
+        var map = side === 'left' ? leftSelected : rightSelected;
+        items.forEach(function(x) { map[x] = checked; });
+        renderListBox(side);
+    }
+
+    function addToRight() {
+        var toMove = leftItems.filter(function(x) { return leftSelected[x]; });
+        if (toMove.length === 0) { alert('请先勾选左侧要添加的项目'); return; }
+        leftItems = leftItems.filter(function(x) { return !leftSelected[x]; });
+        rightItems = rightItems.concat(toMove);
+        toMove.forEach(function(x) { delete leftSelected[x]; rightSelected[x] = true; });
+        // 清理右侧已选标记（避免重复渲染问题）
+        rightSelected = {};
+        updateListCounts();
+        renderListBox('left');
+        renderListBox('right');
+    }
+
+    function removeToLeft() {
+        var toMove = rightItems.filter(function(x) { return rightSelected[x]; });
+        if (toMove.length === 0) { alert('请先勾选右侧要移除的项目'); return; }
+        rightItems = rightItems.filter(function(x) { return !rightSelected[x]; });
+        leftItems = leftItems.concat(toMove);
+        rightSelected = {};
+        updateListCounts();
+        renderListBox('left');
+        renderListBox('right');
+    }
+
+    function addAllToRight() {
+        if (leftItems.length === 0) return;
+        rightItems = rightItems.concat(leftItems);
+        leftItems = [];
+        leftSelected = {};
+        updateListCounts();
+        renderListBox('left');
+        renderListBox('right');
+    }
+
+    function removeAllToLeft() {
+        if (rightItems.length === 0) return;
+        leftItems = leftItems.concat(rightItems);
+        rightItems = [];
+        rightSelected = {};
+        updateListCounts();
+        renderListBox('left');
+        renderListBox('right');
+    }
+
+    function updateListCounts() {
+        document.getElementById('leftCount').textContent = leftItems.length + '项';
+        document.getElementById('rightCount').textContent = rightItems.length + '项';
+        document.getElementById('btnAdd').disabled = leftItems.length === 0;
+        document.getElementById('btnRemove').disabled = rightItems.length === 0;
+        document.getElementById('btnAddAll').disabled = leftItems.length === 0;
+        document.getElementById('btnRemoveAll').disabled = rightItems.length === 0;
+    }
+
+    // ============ 食品分类表格 ============
+    function addFoodRow(data) {
+        if (!data) data = { big: '', mid: '', sub: '', fine: '' };
+        foodRows.push(data);
+        renderFoodTable();
+    }
+
+    function removeFoodRow(idx) {
+        if (!confirm('确定删除该食品分类行？')) return;
+        foodRows.splice(idx, 1);
+        renderFoodTable();
+    }
+
+    function renderFoodTable() {
+        var tbody = document.getElementById('foodTableBody');
+        if (foodRows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-table">暂无食品分类，点击下方"新增食品分类"添加</td></tr>';
+            return;
+        }
+        tbody.innerHTML = foodRows.map(function(row, idx) {
+            var midOpts = foodMidMap[row.big] || [];
+            var subOpts = foodSubMap[row.mid] || [];
+            var fineOpts = foodFineMap[row.sub] || [];
+            return '<tr>' +
+                '<td class="center">' + (idx + 1) + '</td>' +
+                '<td><select onchange="onBigChange(' + idx + ', this.value)" class="f-big">' + foodBigCats.map(function(o) { return '<option' + (row.big === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select></td>' +
+                '<td><select onchange="onMidChange(' + idx + ', this.value)" class="f-mid">' + (midOpts.length === 0 ? '<option value="">请选择</option>' : midOpts.map(function(o) { return '<option' + (row.mid === o ? ' selected' : '') + '>' + o + '</option>'; }).join('')) + '</select></td>' +
+                '<td><select onchange="onSubChange(' + idx + ', this.value)" class="f-sub">' + (subOpts.length === 0 ? '<option value="">请选择</option>' : subOpts.map(function(o) { return '<option' + (row.sub === o ? ' selected' : '') + '>' + o + '</option>'; }).join('')) + '</select></td>' +
+                '<td><select class="f-fine">' + (fineOpts.length === 0 ? '<option value="">请选择</option>' : fineOpts.map(function(o) { return '<option' + (row.fine === o ? ' selected' : '') + '>' + o + '</option>'; }).join('')) + '</select></td>' +
+                '<td class="center"><button class="btn btn-danger btn-sm" onclick="removeFoodRow(' + idx + ')">删除</button></td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    function onBigChange(idx, val) {
+        foodRows[idx].big = val;
+        foodRows[idx].mid = '';
+        foodRows[idx].sub = '';
+        foodRows[idx].fine = '';
+        renderFoodTable();
+    }
+    function onMidChange(idx, val) {
+        foodRows[idx].mid = val;
+        foodRows[idx].sub = '';
+        foodRows[idx].fine = '';
+        renderFoodTable();
+    }
+    function onSubChange(idx, val) {
+        foodRows[idx].sub = val;
+        foodRows[idx].fine = '';
+        renderFoodTable();
+    }
+
+    // ============ 工具 ============
+    function goBack() {
+        if (window.opener || history.length > 1) {
+            if (confirm('未保存的数据将丢失，确定返回吗？')) {
+                if (window.opener) window.close();
+                else history.back();
+            }
+        } else {
+            location.href = 'package_price.html';
+        }
+    }
+
+    function toggleCollapse(id) {
+        var card = document.getElementById(id).closest('.section-card');
+        // 简化：实际可做折叠
+        console.log('toggle ' + id);
+    }
+
+    function saveData() {
+        var report = document.getElementById('fReport').value;
+        var name = document.getElementById('fName').value.trim();
+        var rule = document.getElementById('fRule').value;
+        var basePrice = document.getElementById('fBasePrice').value;
+        var maxPrice = document.getElementById('fMaxPrice').value;
+
+        if (!report) { alert('请选择报送分类2'); document.getElementById('fReport').focus(); return; }
+        if (!name) { alert('请输入打包价名称'); document.getElementById('fName').focus(); return; }
+        if (!rule) { alert('请选择打包规则'); document.getElementById('fRule').focus(); return; }
+        if (rightItems.length === 0) { alert('请至少选择一个检验项目'); return; }
+        if (foodRows.length === 0) { alert('请至少添加一个食品分类'); return; }
+        for (var i = 0; i < foodRows.length; i++) {
+            if (!foodRows[i].big || !foodRows[i].mid || !foodRows[i].sub || !foodRows[i].fine) {
+                alert('食品分类第' + (i + 1) + '行请完整填写四级分类');
+                return;
+            }
+        }
+
+        var payload = {
+            id: editMode === 'edit' ? editId : null,
+            report: report,
+            name: name,
+            rule: rule,
+            basePrice: basePrice,
+            maxPrice: maxPrice,
+            items: rightItems.slice(),
+            foods: foodRows.slice()
+        };
+        console.log('保存数据：', payload);
+        alert('保存成功！\n\n打包价名称：' + name + '\n检验项目数：' + rightItems.length + '\n食品分类数：' + foodRows.length);
+
+        // 尝试通知父窗口刷新列表
+        try {
+            if (window.opener && window.opener.renderTable) {
+                // 仅提示刷新，不强制（跨窗口不同步 rawData）
+            }
+        } catch (e) {}
+    }
+
+    // ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            // 不强制关闭，由用户决定
+        }
+    });
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>核查处置报告</title>
+    <link rel="stylesheet" href="../risk_comm/risk_comm.css">
+    <style>
+        /* ============ 页面特有样式 ============ */
+
+        /* 筛选项纵向布局（标签在上、控件在下） */
+        .filter-row { align-items: flex-end; gap: 16px; }
+        .filter-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+        .filter-input { min-width: 200px; cursor: text; }
+        .filter-actions { margin-left: 0; margin-bottom: 0; }
+
+        /* 渐变表头卡片 */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 13px 18px;
+            color: #fff;
+            background: linear-gradient(90deg, var(--green) 0%, #2daf7f 100%);
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.3px;
+        }
+        .card-title-icon {
+            width: 24px;
+            height: 24px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+        .card-header .stat-summary {
+            font-size: 12px;
+            color: rgba(255,255,255,0.95);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .card-header .stat-summary b { color: #fff; margin: 0 4px; font-weight: 700; }
+
+        /* 明细表容器 */
+        .detail-table-wrap { overflow-x: auto; }
+        .data-table { min-width: 1000px; }
+
+        /* 报告标题单元格 */
+        .report-title-cell {
+            text-align: left !important;
+            color: var(--green);
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        .report-title-cell:hover { color: var(--green-hover); text-decoration: underline; }
+
+        /* 任务来源标签 */
+        .src-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+        .src-gov  { background: var(--blue-light); color: var(--blue); border: 1px solid #b3d1f5; }
+        .src-city { background: var(--green-light); color: var(--green); border: 1px solid #b7e6d4; }
+        .src-dist { background: var(--orange-light); color: var(--orange); border: 1px solid #ffd591; }
+
+        /* 处置状态标签 */
+        .status-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-doing { background: var(--blue-light); color: var(--blue); border: 1px solid #b3d1f5; }
+        .status-done  { background: var(--green-light); color: var(--green); border: 1px solid #b7e6d4; }
+
+        /* 操作链接按钮 */
+        .link-btn {
+            background: none;
+            border: none;
+            color: var(--blue);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 6px;
+            transition: var(--transition);
+        }
+        .link-btn:hover { color: var(--green); text-decoration: underline; background: transparent; }
+        .link-btn.green { color: var(--green); }
+        .link-btn.green:hover { color: var(--green-hover); }
+        .link-btn + .link-btn { margin-left: 4px; }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 22px;
+            border-top: 1px solid var(--border-light);
+            background: var(--bg-soft);
+            flex-wrap: wrap;
+        }
+        .pagination-info { font-size: 12px; color: var(--text-secondary); }
+        .pagination-controls { display: flex; align-items: center; gap: 6px; }
+        .pagination button {
+            min-width: 32px;
+            padding: 6px 12px;
+            border: 1px solid var(--border-base);
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-regular);
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        .pagination button.active {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(30,154,108,0.2);
+        }
+        .pagination button:hover:not(.active):not(:disabled) {
+            border-color: var(--green);
+            color: var(--green);
+            background: var(--green-soft);
+        }
+        .pagination button:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg-soft); }
+
+        /* Tab 切换页签 */
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            width: fit-content;
+        }
+        .tab-item {
+            padding: 10px 28px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+            background: var(--bg-card);
+            position: relative;
+        }
+        .tab-item:hover { color: var(--green); background: var(--green-soft); }
+        .tab-item.active {
+            color: var(--green);
+            font-weight: 600;
+            border-bottom-color: var(--green);
+            background: var(--green-light);
+        }
+        .tab-item .tab-count {
+            display: inline-block;
+            min-width: 20px;
+            padding: 1px 6px;
+            margin-left: 6px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: var(--bg-soft);
+            color: var(--text-secondary);
+        }
+        .tab-item.active .tab-count {
+            background: var(--green);
+            color: #fff;
+        }
+
+        /* 批量操作栏 */
+        .batch-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: var(--bg-soft);
+            border-bottom: 1px solid var(--border-light);
+        }
+        .batch-bar-left { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-secondary); }
+        .batch-bar-right { display: flex; align-items: center; gap: 10px; }
+        .selected-count { color: var(--green); font-weight: 600; }
+
+        /* 复选框列 */
+        .data-table .cb-cell { width: 40px; }
+        .data-table input[type="checkbox"] { cursor: pointer; accent-color: var(--green); width: 16px; height: 16px; }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div>
+            <div class="page-title">核查处置报告</div>
+            <div class="page-subtitle">核查处置任务报告查询与下载管理</div>
+        </div>
+    </div>
+
+    <!-- 筛选区域 -->
+    <div class="filter-section">
+        <div class="filter-row">
+            <div class="filter-item">
+                <span class="filter-label">抽样单编号</span>
+                <input type="text" id="fSampleNo" class="filter-input" placeholder="输入抽样单编号">
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">样品名称</span>
+                <input type="text" id="fSampleName" class="filter-input" placeholder="输入样品名称（模糊查询）">
+            </div>
+            <div class="filter-item">
+                <span class="filter-label">任务来源</span>
+                <select id="fSource" class="filter-select">
+                    <option value="">全部</option>
+                    <option value="总局">总局</option>
+                    <option value="市局">市局</option>
+                    <option value="区局">区局</option>
+                </select>
+            </div>
+
+
+            <div class="filter-actions">
+                <button class="btn btn-primary" onclick="queryReports()">查询</button>
+                <button class="btn btn-secondary" onclick="resetFilter()">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 切换页签 -->
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="switchTab('处置完成')">
+            处置完成<span class="tab-count" id="tabCountDone">0</span>
+        </div>
+        <div class="tab-item" onclick="switchTab('处置中')">
+            处置中<span class="tab-count" id="tabCountDoing">0</span>
+        </div>
+    </div>
+
+    <!-- 报告列表 -->
+    <div class="card">
+        <div class="card-header green">
+            <div class="card-title">
+                <span class="card-title-icon">📋</span>
+                核查处置报告列表
+            </div>
+            <div class="stat-summary">共 <b id="totalReports">0</b> 条记录</div>
+        </div>
+        <!-- 批量操作栏 -->
+        <div class="batch-bar">
+            <div class="batch-bar-left">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                <label for="selectAll" style="cursor:pointer;">全选</label>
+                <span>已选 <span class="selected-count" id="selectedCount">0</span> 条</span>
+            </div>
+            <div class="batch-bar-right">
+                <button class="btn btn-primary" onclick="batchGenerateReports()">📋 批量生成报告</button>
+            </div>
+        </div>
+        <div class="detail-table-wrap">
+            <table class="data-table" id="checkReportTable">
+                <thead>
+                    <tr>
+                        <th class="cb-cell"></th>
+                        <th>序号</th>
+                        <th>抽样单编号</th>
+                        <th>样品名称</th>
+                        <th>核查处置环节</th>
+                        <th>处置地区</th>
+                        <th>任务来源</th>
+                        <th>处置状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="reportTbody"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-info" id="pageInfo">第 0-0 条 / 共 0 条</div>
+            <div class="pagination-controls" id="paginationControls">
+                <button onclick="changePage(-1)" id="prevBtn" disabled>‹</button>
+                <button class="active">1</button>
+                <button onclick="changePage(1)" id="nextBtn" disabled>›</button>
+                <select class="page-size-select" onchange="changePageSize(this.value)">
+                    <option>10条/页</option>
+                    <option selected>20条/页</option>
+                    <option>50条/页</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==================== 核查处置报告模拟数据 ==================== */
+        var reportData = [
+            { sampleNo: "CJ2026-08001", sampleName: "大白菜", stage: "生产环节", region: "朝阳区", source: "总局", status: "处置完成", report: "大白菜核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08002", sampleName: "猪肉（五花肉）", stage: "流通环节", region: "海淀区", source: "市局", status: "处置中", report: "猪肉核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08003", sampleName: "鸡蛋", stage: "生产环节", region: "通州区", source: "区局", status: "处置完成", report: "鸡蛋核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08004", sampleName: "鲜牛奶", stage: "流通环节", region: "东城区", source: "总局", status: "处置完成", report: "鲜牛奶核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08005", sampleName: "苹果", stage: "生产环节", region: "顺义区", source: "市局", status: "处置中", report: "苹果核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08006", sampleName: "鸡胸肉", stage: "流通环节", region: "西城区", source: "区局", status: "处置完成", report: "鸡胸肉核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08007", sampleName: "大米", stage: "生产环节", region: "丰台区", source: "总局", status: "处置完成", report: "大米核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08008", sampleName: "食用油（花生油）", stage: "流通环节", region: "石景山区", source: "市局", status: "处置中", report: "食用油核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08009", sampleName: "西红柿", stage: "生产环节", region: "门头沟区", source: "区局", status: "处置完成", report: "西红柿核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08010", sampleName: "鲈鱼", stage: "流通环节", region: "房山区", source: "总局", status: "处置完成", report: "鲈鱼核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08011", sampleName: "菠菜", stage: "生产环节", region: "昌平区", source: "市局", status: "处置中", report: "菠菜核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08012", sampleName: "牛肉", stage: "流通环节", region: "大兴区", source: "区局", status: "处置完成", report: "牛肉核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08013", sampleName: "香蕉", stage: "生产环节", region: "怀柔区", source: "总局", status: "处置完成", report: "香蕉核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08014", sampleName: "酸奶", stage: "流通环节", region: "平谷区", source: "市局", status: "处置中", report: "酸奶核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08015", sampleName: "土豆", stage: "生产环节", region: "密云区", source: "区局", status: "处置完成", report: "土豆核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08016", sampleName: "鸡翅", stage: "流通环节", region: "延庆区", source: "总局", status: "处置完成", report: "鸡翅核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08017", sampleName: "黄瓜", stage: "生产环节", region: "朝阳区", source: "市局", status: "处置中", report: "黄瓜核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08018", sampleName: "豆腐", stage: "流通环节", region: "海淀区", source: "区局", status: "处置完成", report: "豆腐核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08019", sampleName: "胡萝卜", stage: "生产环节", region: "通州区", source: "总局", status: "处置完成", report: "胡萝卜核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08020", sampleName: "羊肉", stage: "流通环节", region: "东城区", source: "市局", status: "处置中", report: "羊肉核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08021", sampleName: "橙子", stage: "生产环节", region: "西城区", source: "区局", status: "处置完成", report: "橙子核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08022", sampleName: "面条", stage: "流通环节", region: "顺义区", source: "总局", status: "处置完成", report: "面条核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08023", sampleName: "青椒", stage: "生产环节", region: "丰台区", source: "市局", status: "处置中", report: "青椒核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08024", sampleName: "虾", stage: "流通环节", region: "石景山区", source: "区局", status: "处置完成", report: "虾核查处置报告.pdf" },
+            { sampleNo: "CJ2026-08025", sampleName: "茄子", stage: "生产环节", region: "门头沟区", source: "总局", status: "处置完成", report: "茄子核查处置报告.pdf" }
+        ];
+
+        var filteredData = reportData.slice();
+        var currentPage = 1;
+        var pageSize = 20;
+        var currentTab = '处置完成';
+        var selectedItems = {};
+
+        /* 更新 Tab 计数 */
+        function updateTabCounts() {
+            var doneCount = reportData.filter(function (item) { return item.status === '处置完成'; }).length;
+            var doingCount = reportData.filter(function (item) { return item.status === '处置中'; }).length;
+            document.getElementById('tabCountDone').textContent = doneCount;
+            document.getElementById('tabCountDoing').textContent = doingCount;
+        }
+
+        /* Tab 切换 */
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-item').forEach(function (el) {
+                el.classList.toggle('active', el.textContent.indexOf(tab) > -1);
+            });
+            /* 处置中：隐藏批量操作栏和操作列 */
+            var batchBar = document.querySelector('.batch-bar');
+            var ths = document.querySelectorAll('#checkReportTable thead th');
+            if (currentTab === '处置中') {
+                batchBar.style.display = 'none';
+                ths[0].style.display = 'none'; /* 复选框列 */
+                ths[ths.length - 1].style.display = 'none'; /* 操作列 */
+            } else {
+                batchBar.style.display = '';
+                ths[0].style.display = '';
+                ths[ths.length - 1].style.display = '';
+            }
+            selectedItems = {};
+            currentPage = 1;
+            applyTabFilter();
+        }
+
+        /* 根据 Tab 过滤数据 */
+        function applyTabFilter() {
+            filteredData = reportData.filter(function (item) {
+                return item.status === currentTab;
+            });
+            /* 再叠加筛选项 */
+            var sampleNo = document.getElementById("fSampleNo").value.trim();
+            var sampleName = document.getElementById("fSampleName").value.trim();
+            var source = document.getElementById("fSource").value;
+            if (sampleNo) filteredData = filteredData.filter(function (item) { return item.sampleNo.indexOf(sampleNo) > -1; });
+            if (sampleName) filteredData = filteredData.filter(function (item) { return item.sampleName.indexOf(sampleName) > -1; });
+            if (source) filteredData = filteredData.filter(function (item) { return item.source === source; });
+            renderReports(filteredData);
+        }
+
+        /* 任务来源标签 HTML */
+        function srcTag(src) {
+            if (src === "总局") return '<span class="src-tag src-gov">总局</span>';
+            if (src === "市局") return '<span class="src-tag src-city">市局</span>';
+            return '<span class="src-tag src-dist">区局</span>';
+        }
+
+        /* 处置状态标签 HTML */
+        function statusTag(status) {
+            if (status === "处置完成") return '<span class="status-tag status-done">处置完成</span>';
+            return '<span class="status-tag status-doing">处置中</span>';
+        }
+
+        /* 渲染报告列表 */
+        function renderReports(list) {
+            var tbody = document.getElementById("reportTbody");
+            var start = (currentPage - 1) * pageSize;
+            var end = start + pageSize;
+            var pageList = list.slice(start, end);
+            var isDisposing = currentTab === '处置中';
+
+            if (!pageList.length) {
+                var colCount = isDisposing ? 7 : 9;
+                tbody.innerHTML = '<tr><td colspan="' + colCount + '" style="color:#999;padding:30px;">暂无匹配的核查处置报告数据</td></tr>';
+            } else {
+                tbody.innerHTML = pageList.map(function (item, index) {
+                    var globalIndex = start + index + 1;
+                    var checked = selectedItems[item.sampleNo] ? 'checked' : '';
+                    var html = '<tr>';
+                    if (!isDisposing) {
+                        html += '<td class="cb-cell"><input type="checkbox" ' + checked + ' onchange="toggleItem(\'' + item.sampleNo + '\', this.checked)"></td>';
+                    }
+                    html += '<td>' + globalIndex + '</td>' +
+                        '<td>' + item.sampleNo + '</td>' +
+                        '<td class="report-title-cell" onclick="viewDetail(\'' + encodeURIComponent(item.sampleNo) + '\')">' + item.sampleName + '</td>' +
+                        '<td>' + item.stage + '</td>' +
+                        '<td>' + item.region + '</td>' +
+                        '<td>' + srcTag(item.source) + '</td>' +
+                        '<td>' + statusTag(item.status) + '</td>';
+                    if (!isDisposing) {
+                        html += '<td>' +
+                            '<button class="link-btn green" onclick="downloadReport(\'' + encodeURIComponent(item.report) + '\')">下载报告</button>' +
+                        '</td>';
+                    }
+                    html += '</tr>';
+                    return html;
+                }).join("");
+            }
+
+            document.getElementById("totalReports").textContent = list.length;
+            if (!isDisposing) {
+                updateSelectedCount();
+                updateSelectAllState(list, start, end);
+            }
+            updatePagination(list.length, start, end);
+        }
+
+        /* 更新分页信息 */
+        function updatePagination(total, start, end) {
+            var pageInfo = document.getElementById("pageInfo");
+            var showEnd = Math.min(end, total);
+            pageInfo.textContent = '第 ' + (total === 0 ? 0 : start + 1) + '-' + showEnd + ' 条 / 共 ' + total + ' 条';
+
+            var prevBtn = document.getElementById("prevBtn");
+            var nextBtn = document.getElementById("nextBtn");
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = end >= total;
+
+            /* 生成页码按钮 */
+            var totalPages = Math.ceil(total / pageSize);
+            var controls = document.getElementById("paginationControls");
+            var html = '<button onclick="changePage(-1)" id="prevBtn" ' + (currentPage <= 1 ? 'disabled' : '') + '>‹</button>';
+            for (var i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += '<button class="active">' + i + '</button>';
+                } else {
+                    html += '<button onclick="goToPage(' + i + ')">' + i + '</button>';
+                }
+            }
+            html += '<button onclick="changePage(1)" id="nextBtn" ' + (end >= total ? 'disabled' : '') + '>›</button>';
+            html += '<select class="page-size-select" onchange="changePageSize(this.value)">' +
+                        '<option ' + (pageSize == 10 ? 'selected' : '') + '>10条/页</option>' +
+                        '<option ' + (pageSize == 20 ? 'selected' : '') + '>20条/页</option>' +
+                        '<option ' + (pageSize == 50 ? 'selected' : '') + '>50条/页</option>' +
+                    '</select>';
+            controls.innerHTML = html;
+        }
+
+        /* 查询 */
+        function queryReports() {
+            currentPage = 1;
+            applyTabFilter();
+        }
+
+        /* 重置 */
+        function resetFilter() {
+            document.getElementById("fSampleNo").value = "";
+            document.getElementById("fSampleName").value = "";
+            document.getElementById("fSource").value = "";
+            document.getElementById("fStatus").value = "";
+            selectedItems = {};
+            currentPage = 1;
+            applyTabFilter();
+        }
+
+        /* 单行复选框切换 */
+        function toggleItem(sampleNo, checked) {
+            if (checked) {
+                selectedItems[sampleNo] = true;
+            } else {
+                delete selectedItems[sampleNo];
+            }
+            updateSelectedCount();
+            var list = filteredData;
+            var start = (currentPage - 1) * pageSize;
+            var end = start + pageSize;
+            updateSelectAllState(list, start, end);
+        }
+
+        /* 全选/取消全选（当前页） */
+        function toggleSelectAll(cb) {
+            var start = (currentPage - 1) * pageSize;
+            var end = start + pageSize;
+            var pageList = filteredData.slice(start, end);
+            pageList.forEach(function (item) {
+                if (cb.checked) {
+                    selectedItems[item.sampleNo] = true;
+                } else {
+                    delete selectedItems[item.sampleNo];
+                }
+            });
+            renderReports(filteredData);
+        }
+
+        /* 更新全选框状态 */
+        function updateSelectAllState(list, start, end) {
+            var pageList = list.slice(start, end);
+            var allChecked = pageList.length > 0 && pageList.every(function (item) { return selectedItems[item.sampleNo]; });
+            var selectAllCb = document.getElementById('selectAll');
+            if (selectAllCb) {
+                selectAllCb.checked = allChecked;
+            }
+        }
+
+        /* 更新已选计数 */
+        function updateSelectedCount() {
+            var count = Object.keys(selectedItems).length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+
+        /* 批量生成报告 */
+        function batchGenerateReports() {
+            var keys = Object.keys(selectedItems);
+            if (!keys.length) {
+                alert('请先勾选需要生成报告的记录');
+                return;
+            }
+            var selected = reportData.filter(function (item) { return selectedItems[item.sampleNo]; });
+            var names = selected.map(function (item) { return item.sampleName + '（' + item.sampleNo + '）'; }).join('\n');
+            if (!confirm('确认对以下 ' + keys.length + ' 条记录批量生成报告？\n\n' + names)) return;
+            alert('已成功为 ' + keys.length + ' 条记录生成报告');
+            selectedItems = {};
+            renderReports(filteredData);
+        }
+
+        /* 查看详情 */
+        function viewDetail(sampleNo) {
+            alert("查看抽样单编号：" + decodeURIComponent(sampleNo) + " 的核查处置详情");
+        }
+
+        /* 下载报告 */
+        function downloadReport(name) {
+            alert("开始下载报告：\n" + decodeURIComponent(name));
+        }
+
+        /* 分页操作 */
+        function changePage(delta) {
+            currentPage += delta;
+            renderReports(filteredData);
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderReports(filteredData);
+        }
+
+        function changePageSize(size) {
+            pageSize = parseInt(size);
+            currentPage = 1;
+            renderReports(filteredData);
+        }
+
+        /* 初始化 */
+        updateTabCounts();
+        applyTabFilter();
+    </script>
+</body>
+</html>

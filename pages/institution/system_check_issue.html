@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统校验问题</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background: #f5f7fa; padding: 15px; }
+        .search-bar { background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .search-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+        .search-row:last-child { margin-bottom: 0; }
+        .search-item { display: flex; align-items: center; gap: 8px; }
+        .search-label { font-size: 13px; color: #666; white-space: nowrap; }
+        .search-input { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-width: 160px; }
+        .search-date { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-width: 130px; }
+        .search-select { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; min-width: 150px; background: #fff; cursor: pointer; }
+        .btn { padding: 6px 16px; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .btn-primary { background: #1e9a6c; color: #fff; }
+        .btn-primary:hover { background: #178558; box-shadow: 0 2px 8px rgba(30,154,108,0.3); }
+        .btn-success { background: #52c41a; color: #fff; }
+        .btn-success:hover { background: #389e0d; box-shadow: 0 2px 8px rgba(82,196,26,0.3); }
+        .btn-warning { background: #faad14; color: #fff; }
+        .btn-warning:hover { background: #d48806; }
+        .btn-secondary { background: #f5f5f5; color: #666; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #e8e8e8; }
+        .table-container { background: #fff; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; flex-wrap: wrap; gap: 10px; }
+        .table-title { font-size: 15px; font-weight: 600; color: #333; }
+        .table-toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+        .table-scroll { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 2200px; }
+        .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+        .data-table th { background: linear-gradient(180deg, #f5faf7 0%, #edf5f0 100%); font-weight: 600; color: #1e9a6c; font-size: 12px; white-space: nowrap; position: sticky; top: 0; }
+        .data-table th:last-child, .data-table td:last-child { position: sticky; right: 0; z-index: 2; box-shadow: -2px 0 6px rgba(0,0,0,0.08); }
+        .data-table th:last-child { background: #edf5f0; z-index: 3; }
+        .data-table td:last-child { background: #fff; }
+        .data-table tr:hover td:last-child { background: #f5faf7; }
+        .data-table tr:hover { background: #f5faf7; }
+        .data-table td.center { text-align: center; vertical-align: middle; }
+        .data-table .sample-no { font-family: "Consolas", monospace; color: #1e9a6c; font-weight: 600; white-space: nowrap; }
+        .data-table .sample-name { color: #333; max-width: 260px; line-height: 1.5; }
+        .data-table .report-period { color: #666; max-width: 220px; line-height: 1.5; }
+        .data-table .sampled-party { color: #1e9a6c; max-width: 180px; line-height: 1.5; }
+        .status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+        .status-confirmed { background: #e8f5e9; color: #2e7d32; }
+        .status-pending { background: #fff8e1; color: #f57c00; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+        .issue-count { display: inline-block; min-width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 12px; background: #ffebee; color: #c62828; font-weight: 600; font-size: 12px; }
+        .action-btn { padding: 3px 8px; font-size: 12px; border: none; border-radius: 3px; cursor: pointer; margin-right: 4px; background: transparent; }
+        .action-btn-view { color: #1e9a6c; }
+        .action-btn-view:hover { background: #e8f8f0; }
+        .pagination-container { display: flex; justify-content: flex-end; align-items: center; padding: 15px 20px; gap: 15px; border-top: 1px solid #f0f0f0; flex-wrap: wrap; }
+        .pagination-info { font-size: 13px; color: #666; }
+        .pagination-controls { display: flex; align-items: center; gap: 8px; }
+        .pagination-btn { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; }
+        .pagination-btn:hover:not(:disabled) { border-color: #1e9a6c; color: #1e9a6c; }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination-current { min-width: 32px; height: 32px; border: none; border-radius: 4px; background: #1e9a6c; color: #fff; font-weight: 600; }
+        .pagination-select { height: 32px; padding: 0 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; background: #fff; cursor: pointer; }
+        .empty-state { text-align: center; padding: 40px 0; color: #999; }
+        /* 弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #fff; border-radius: 8px; width: 90%; max-width: 750px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, #1e9a6c, #2daf7f); flex: 0 0 auto; }
+        .modal-title { font-size: 16px; font-weight: 600; color: #fff; }
+        .modal-close { font-size: 24px; color: rgba(255,255,255,0.8); cursor: pointer; line-height: 1; }
+        .modal-close:hover { color: #fff; }
+        .modal-body { padding: 20px; flex: 1 1 auto; overflow-y: auto; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 15px 20px; border-top: 1px solid #f0f0f0; background: #fafafa; flex: 0 0 auto; }
+        .form-item { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 13px; color: #333; margin-bottom: 5px; font-weight: 500; }
+        .form-label.required::after { content: '*'; color: #c62828; margin-left: 4px; }
+        .form-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; transition: border-color 0.2s; }
+        .form-input:focus { outline: none; border-color: #1e9a6c; box-shadow: 0 0 0 2px rgba(30,154,108,0.1); }
+        .form-select { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: #fff; cursor: pointer; transition: border-color 0.2s; }
+        .form-select:focus { outline: none; border-color: #1e9a6c; box-shadow: 0 0 0 2px rgba(30,154,108,0.1); }
+        .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical; min-height: 70px; font-family: inherit; transition: border-color 0.2s; }
+        .form-textarea:focus { outline: none; border-color: #1e9a6c; box-shadow: 0 0 0 2px rgba(30,154,108,0.1); }
+        .form-row { display: flex; gap: 15px; }
+        .form-row .form-item { flex: 1; }
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px dashed #f0f0f0; }
+        .detail-label { width: 120px; color: #666; font-size: 13px; flex-shrink: 0; }
+        .detail-value { color: #333; font-size: 13px; flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="search-bar">
+        <div class="search-row">
+            <div class="search-item">
+                <span class="search-label">抽样单号：</span>
+                <input type="text" class="search-input" id="searchSampleNo" placeholder="请输入抽样单号">
+            </div>
+            <div class="search-item">
+                <span class="search-label">更新时间：</span>
+                <input type="date" class="search-date" id="searchStartTime" placeholder="开始时间">
+                <span style="color:#999;">-</span>
+                <input type="date" class="search-date" id="searchEndTime" placeholder="结束时间">
+            </div>
+            <div class="search-item">
+                <span class="search-label">规则名称：</span>
+                <input type="text" class="search-input" id="searchRuleName" placeholder="请输入规则名称">
+            </div>
+            <div class="search-item">
+                <span class="search-label">检验机构：</span>
+                <input type="text" class="search-input" id="searchInspectionOrg" placeholder="请输入检验机构">
+            </div>
+        </div>
+        <div class="search-row">
+            <div class="search-item">
+                <span class="search-label">食品大类：</span>
+                <select class="search-select" id="searchFoodCategory">
+                    <option value="">请选择</option>
+                    <option value="餐饮食品">餐饮食品</option>
+                    <option value="区域食品">区域食品</option>
+                    <option value="动物源食品">动物源食品</option>
+                    <option value="乳制品">乳制品</option>
+                    <option value="食用盐">食用盐</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">食品亚类：</span>
+                <select class="search-select" id="searchFoodSubCategory">
+                    <option value="">请选择</option>
+                    <option value="米面及其制品(自制)">米面及其制品(自制)</option>
+                    <option value="粮食加工品">粮食加工品</option>
+                    <option value="肉制品">肉制品</option>
+                    <option value="乳制品">乳制品</option>
+                    <option value="调味品">调味品</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">食品次亚类：</span>
+                <select class="search-select" id="searchFoodSubSubCategory">
+                    <option value="">请选择</option>
+                    <option value="小麦粉制品(自制)">小麦粉制品(自制)</option>
+                    <option value="大米">大米</option>
+                    <option value="腊肉">腊肉</option>
+                    <option value="纯牛奶">纯牛奶</option>
+                    <option value="酱油">酱油</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">食品细类：</span>
+                <select class="search-select" id="searchFoodFineCategory">
+                    <option value="">请选择</option>
+                    <option value="其他发酵面制品(自制)">其他发酵面制品(自制)</option>
+                    <option value="散装大米">散装大米</option>
+                    <option value="预包装腊肉">预包装腊肉</option>
+                    <option value="预包装纯牛奶">预包装纯牛奶</option>
+                    <option value="散装酱油">散装酱油</option>
+                </select>
+            </div>
+        </div>
+        <div class="search-row">
+            <div class="search-item">
+                <span class="search-label">机构核实情况：</span>
+                <select class="search-select" id="searchOrgVerify">
+                    <option value="">请选择</option>
+                    <option value="verified">存在问题</option>
+                    <option value="unverified">不存在问题</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">是否确认：</span>
+                <select class="search-select" id="searchOrgVerify">
+                    <option value="">请选择</option>
+                    <option value="verified">已确认</option>
+                    <option value="unverified">待确认</option>
+                </select>
+            </div>
+            <div class="search-item">
+                <span class="search-label">问题字段：</span>
+                <select class="search-select" id="searchIssueField">
+                    <option value="">请选择</option>
+                    <option value="样品类型">样品类型</option>
+                    <option value="区域类型">区域类型</option>
+                    <option value="抽样地点">抽样地点</option>
+                    <option value="样品名称">样品名称</option>
+                    <option value="抽样人员">抽样人员</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="doSearch()">🔍 搜索</button>
+            <button class="btn btn-warning" onclick="clearSearch()">↻ 重置</button>
+            <button class="btn btn-secondary" onclick="exportExcel()">导出</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th class="center" style="width:50px;">序号</th>
+                        <th style="width:180px;">抽样编号</th>
+                        <th style="width:150px;">更新时间</th>
+                        <th style="width:150px;">系统校验时间</th>
+                        <th class="center" style="width:80px;">问题数量</th>
+                        <th style="width:120px;">问题字段</th>
+                        <th style="width:150px;">样品名称</th>
+                        <th class="center" style="width:140px;">样品状态</th>
+                        <th style="width:110px;">抽样日期 ↓</th>
+                        <th style="width:100px;">场所所在省</th>
+                        <th style="width:100px;">场所所在市</th>
+                        <th style="width:100px;">场所所在县</th>
+                        <th style="width:160px;">任务来源</th>
+                        <th style="width:160px;">报送分类A</th>
+                        <th style="width:260px;">报送分类B</th>
+                        <th style="width:260px;">检验机构名称</th>
+                        <th style="width:260px;">抽样机构</th>
+                        <th style="width:120px;">样品结论</th>
+                        <th style="width:110px;">食品大类</th>
+                        <th style="width:140px;">食品亚类</th>
+                        <th style="width:160px;">食品次亚类</th>
+                        <th style="width:160px;">食品细类</th>
+                        <th style="width:120px;">抽样人员</th>
+                        <th class="center" style="width:90px;">是否修改</th>
+                        <th class="center" style="width:80px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination-container" id="paginationContainer"></div>
+    </div>
+
+    <script>
+        // 模拟数据
+        var issueData = [
+            { id: 1, sampleNo: 'SBC26110000105677241ZX', updateTime: '2026-09-01 14:38:42', sysCheckTime: '2026-09-02 06:25:07', issueCount: 1, issueField: '样品类型', sampleName: '烧饼(椒盐味)', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-29', province: '北京', city: '大兴', county: '大兴', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '张超强、马瑞', isModified: false, ruleName: '抽样单完整性校验规则', orgVerify: 'verified' },
+            { id: 2, sampleNo: 'SBC26110000105677247ZX', updateTime: '2026-09-04 10:55:23', sysCheckTime: '2026-09-05 11:42:34', issueCount: 1, issueField: '区域类型', sampleName: '麻酱烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-29', province: '北京', city: '通州', county: '通州', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '于可宇、马瑞', isModified: false, ruleName: '抽样单完整性校验规则', orgVerify: 'verified' },
+            { id: 3, sampleNo: 'SBC26110000105677246ZX', updateTime: '2026-09-04 10:55:08', sysCheckTime: '2026-09-05 11:42:34', issueCount: 1, issueField: '区域类型', sampleName: '豆沙烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-29', province: '北京', city: '通州', county: '通州', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '于可宇、马瑞', isModified: false, ruleName: '抽样单完整性校验规则', orgVerify: 'unverified' },
+            { id: 4, sampleNo: 'SBC26110000105677248ZX', updateTime: '2026-09-04 10:55:57', sysCheckTime: '2026-09-05 11:42:34', issueCount: 1, issueField: '区域类型', sampleName: '椒盐烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-29', province: '北京', city: '通州', county: '通州', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '于可宇、马瑞', isModified: true, ruleName: '抽样单信息一致性校验规则', orgVerify: 'verified' },
+            { id: 5, sampleNo: 'SBC26110000105677245ZX', updateTime: '2026-09-04 10:54:30', sysCheckTime: '2026-09-05 11:42:34', issueCount: 1, issueField: '区域类型', sampleName: '白糖烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-29', province: '北京', city: '通州', county: '通州', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '于可宇、马瑞', isModified: false, ruleName: '抽样单完整性校验规则', orgVerify: 'verified' },
+            { id: 6, sampleNo: 'SBC26110000105677250ZX', updateTime: '2026-09-05 09:12:18', sysCheckTime: '2026-09-06 07:30:12', issueCount: 2, issueField: '抽样地点', sampleName: '芝麻酱烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-30', province: '北京', city: '大兴', county: '大兴', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '张超强、李娜', isModified: false, ruleName: '抽样单信息一致性校验规则', orgVerify: 'verified' },
+            { id: 7, sampleNo: 'SBC26110000105677251ZX', updateTime: '2026-09-05 14:22:45', sysCheckTime: '2026-09-06 08:15:33', issueCount: 1, issueField: '样品名称', sampleName: '葱花烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-30', province: '北京', city: '通州', county: '通州', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '于可宇、王强', isModified: true, ruleName: '抽样单完整性校验规则', orgVerify: 'verified' },
+            { id: 8, sampleNo: 'SBC26110000105677252ZX', updateTime: '2026-09-06 08:45:12', sysCheckTime: '2026-09-06 09:20:55', issueCount: 3, issueField: '抽样人员', sampleName: '咸口烧饼（自制）', sampleStatus: '已接样(主检人待填报)', sampleDate: '2026-08-31', province: '北京', city: '大兴', county: '大兴', taskSource: '北京市市场监督管理局', reportCategoryA: '抽检监测（省级专项）', reportCategoryB: '2026年北京经营环节非集中交易市场一般性风险食品你点我检风险抽检专项', inspectionOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleOrg: '北京市食品检验研究院(北京市食品安全监控和风险评估中心)', sampleConclusion: '', foodCategory: '餐饮食品', foodSubCategory: '米面及其制品(自制)', foodSubSubCategory: '小麦粉制品(自制)', foodFineCategory: '其他发酵面制品(自制)', sampler: '张超强、马瑞', isModified: false, ruleName: '抽样单信息一致性校验规则', orgVerify: 'unverified' }
+        ];
+
+        var filteredData = issueData.slice();
+        var currentPage = 1;
+        var pageSize = 50;
+
+        // 渲染表格
+        function renderTable() {
+            var tbody = document.getElementById('tableBody');
+            var total = filteredData.length;
+            var totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+            var start = (currentPage - 1) * pageSize;
+            var end = Math.min(start + pageSize, total);
+            var pageData = filteredData.slice(start, end);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="25" class="empty-state">暂无数据</td></tr>';
+            } else {
+                tbody.innerHTML = pageData.map(function(item, index) {
+                    var modifiedText = item.isModified ? '是' : '否';
+                    var modifiedClass = item.isModified ? 'status-pending' : 'status-confirmed';
+                    return '<tr>' +
+                        '<td class="center">' + (start + index + 1) + '</td>' +
+                        '<td><span class="sample-no">' + item.sampleNo + '</span></td>' +
+                        '<td>' + item.updateTime + '</td>' +
+                        '<td>' + item.sysCheckTime + '</td>' +
+                        '<td class="center"><span class="issue-count">' + item.issueCount + '</span></td>' +
+                        '<td>' + item.issueField + '</td>' +
+                        '<td class="sample-name">' + item.sampleName + '</td>' +
+                        '<td class="center">' + item.sampleStatus + '</td>' +
+                        '<td>' + item.sampleDate + '</td>' +
+                        '<td>' + item.province + '</td>' +
+                        '<td>' + item.city + '</td>' +
+                        '<td>' + item.county + '</td>' +
+                        '<td>' + item.taskSource + '</td>' +
+                        '<td>' + item.reportCategoryA + '</td>' +
+                        '<td class="report-period">' + item.reportCategoryB + '</td>' +
+                        '<td class="report-period">' + item.inspectionOrg + '</td>' +
+                        '<td class="report-period">' + item.sampleOrg + '</td>' +
+                        '<td>' + (item.sampleConclusion || '-') + '</td>' +
+                        '<td>' + item.foodCategory + '</td>' +
+                        '<td>' + item.foodSubCategory + '</td>' +
+                        '<td>' + item.foodSubSubCategory + '</td>' +
+                        '<td>' + item.foodFineCategory + '</td>' +
+                        '<td>' + item.sampler + '</td>' +
+                        '<td class="center"><span class="status-badge ' + modifiedClass + '">' + modifiedText + '</span></td>' +
+                        '<td class="center"><button class="action-btn action-btn-view" onclick="viewRecord(' + item.id + ')">查看</button></td>' +
+                        '</tr>';
+                }).join('');
+            }
+            renderPagination(total, totalPages);
+        }
+
+        // 渲染分页
+        function renderPagination(total, totalPages) {
+            var container = document.getElementById('paginationContainer');
+            var start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            var end = Math.min(currentPage * pageSize, total);
+
+            var html = '<span class="pagination-info">显示第 ' + start + ' 到 ' + end + ' 条记录，总共 ' + total + ' 条信息</span>';
+            html += '<div class="pagination-controls">';
+            html += '<select class="pagination-select" onchange="changePageSize(this.value)">';
+            [50, 100, 200].forEach(function(s) {
+                html += '<option value="' + s + '" ' + (s === pageSize ? 'selected' : '') + '>' + s + '条/页</option>';
+            });
+            html += '</select>';
+            html += '<button class="pagination-btn" onclick="goToPage(' + (currentPage - 1) + ')" ' + (currentPage <= 1 ? 'disabled' : '') + '>上一页</button>';
+            var maxBtn = 6;
+            var startPage = Math.max(1, currentPage - 2);
+            var endPage = Math.min(totalPages, startPage + maxBtn - 1);
+            startPage = Math.max(1, endPage - maxBtn + 1);
+            if (startPage > 1) {
+                html += '<button class="pagination-btn" onclick="goToPage(1)">1</button>';
+                if (startPage > 2) html += '<span>...</span>';
+            }
+            for (var i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    html += '<button class="pagination-current">' + i + '</button>';
+                } else {
+                    html += '<button class="pagination-btn" onclick="goToPage(' + i + ')">' + i + '</button>';
+                }
+            }
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += '<span>...</span>';
+                html += '<button class="pagination-btn" onclick="goToPage(' + totalPages + ')">' + totalPages + '</button>';
+            }
+            html += '<button class="pagination-btn" onclick="goToPage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + '>下一页</button>';
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            var totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        function changePageSize(size) {
+            pageSize = parseInt(size);
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 搜索
+        function doSearch() {
+            var sampleNo = document.getElementById('searchSampleNo').value.trim();
+            var startTime = document.getElementById('searchStartTime').value;
+            var endTime = document.getElementById('searchEndTime').value;
+            var ruleName = document.getElementById('searchRuleName').value.trim();
+            var inspectionOrg = document.getElementById('searchInspectionOrg').value.trim();
+            var foodCategory = document.getElementById('searchFoodCategory').value;
+            var foodSubCategory = document.getElementById('searchFoodSubCategory').value;
+            var foodSubSubCategory = document.getElementById('searchFoodSubSubCategory').value;
+            var foodFineCategory = document.getElementById('searchFoodFineCategory').value;
+            var orgVerify = document.getElementById('searchOrgVerify').value;
+            var issueField = document.getElementById('searchIssueField').value;
+
+            filteredData = issueData.filter(function(item) {
+                var matchNo = !sampleNo || item.sampleNo.indexOf(sampleNo) !== -1;
+                var itemDate = item.updateTime.slice(0, 10);
+                var matchStart = !startTime || itemDate >= startTime;
+                var matchEnd = !endTime || itemDate <= endTime;
+                var matchRuleName = !ruleName || item.ruleName.indexOf(ruleName) !== -1;
+                var matchInspectionOrg = !inspectionOrg || item.inspectionOrg.indexOf(inspectionOrg) !== -1;
+                var matchFoodCategory = !foodCategory || item.foodCategory === foodCategory;
+                var matchFoodSubCategory = !foodSubCategory || item.foodSubCategory === foodSubCategory;
+                var matchFoodSubSubCategory = !foodSubSubCategory || item.foodSubSubCategory === foodSubSubCategory;
+                var matchFoodFineCategory = !foodFineCategory || item.foodFineCategory === foodFineCategory;
+                var matchOrgVerify = !orgVerify || item.orgVerify === orgVerify;
+                var matchIssueField = !issueField || item.issueField === issueField;
+                return matchNo && matchStart && matchEnd && matchRuleName && matchInspectionOrg && matchFoodCategory && matchFoodSubCategory && matchFoodSubSubCategory && matchFoodFineCategory && matchOrgVerify && matchIssueField;
+            });
+            currentPage = 1;
+            renderTable();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchSampleNo').value = '';
+            document.getElementById('searchStartTime').value = '';
+            document.getElementById('searchEndTime').value = '';
+            document.getElementById('searchRuleName').value = '';
+            document.getElementById('searchInspectionOrg').value = '';
+            document.getElementById('searchFoodCategory').value = '';
+            document.getElementById('searchFoodSubCategory').value = '';
+            document.getElementById('searchFoodSubSubCategory').value = '';
+            document.getElementById('searchFoodFineCategory').value = '';
+            document.getElementById('searchOrgVerify').value = '';
+            document.getElementById('searchIssueField').value = '';
+            filteredData = issueData.slice();
+            currentPage = 1;
+            renderTable();
+        }
+
+        function showAllRecords() {
+            filteredData = issueData.slice();
+            currentPage = 1;
+            renderTable();
+        }
+
+        function filterConfirmed() {
+            filteredData = issueData.filter(function(item) { return item.sampleStatus.indexOf('已接样') !== -1; });
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 查看详情 - 在新Tab页面打开
+        function viewRecord(id) {
+            var item = issueData.find(function(d) { return d.id === id; });
+            if (!item) return;
+
+            var issueDescMap = {
+                '样品类型': '被抽样单位名称包含学校、幼儿园等学校场所，给归类学校场所，或抽样场所应/为"学校/托幼食堂"，区域类型应为"学校及周边"；在抽样管理模块抽样管理/场所信息/抽样场所信息-区域类型！',
+                '区域类型': '被抽样单位名称包含学校、幼儿园等学校场所，或抽样场所应/为"学校/托幼食堂"，区域类型应为"学校及周边"',
+                '抽样地点': '抽样地点字段信息不完整，请核对抽样地点详情',
+                '样品名称': '样品名称格式不规范，请核对样品名称信息',
+                '抽样人员': '抽样人员信息填写不完整，请核对抽样人员联系方式'
+            };
+            var ruleDescMap = {
+                '样品类型': '被抽样单位名称包含学校、幼儿园等学校场所，或抽样场所应/为"学校/托幼食堂"，区域类型应为"学校及周边"',
+                '区域类型': '被抽样单位名称包含学校、幼儿园等学校场所，或抽样场所应/为"学校/托幼食堂"，区域类型应为"学校及周边"',
+                '抽样地点': '抽样地点不能为空，且需与场所地址一致',
+                '样品名称': '样品名称需包含品牌/口味等关键信息',
+                '抽样人员': '抽样人员姓名与电话必须成对填写'
+            };
+            var issueDesc = issueDescMap[item.issueField] || '系统校验发现该字段存在异常';
+            var ruleDesc = ruleDescMap[item.issueField] || '请核对该字段信息准确性';
+
+            var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>抽样单校验问题详情 - ' + item.sampleNo + '</title>';
+            html += '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Microsoft YaHei",Arial,sans-serif;background:#f0f7f4;padding:20px;color:#333}.page-title{font-size:20px;font-weight:600;color:#1e9a6c;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #1e9a6c}.section{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(30,154,108,0.08);margin-bottom:20px;overflow:hidden;border:1px solid #e0ede8}.section-header{padding:12px 20px;background:linear-gradient(135deg,#1e9a6c,#3dc880);color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}.section-header::before{content:"";width:4px;height:16px;background:#fff;border-radius:2px}.section-body{padding:20px}.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.info-item{display:flex;flex-direction:column;gap:4px}.info-label{font-size:12px;color:#999}.info-value{font-size:13px;color:#333;word-break:break-all}.info-item.full{grid-column:1/-1}table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}th{background:#f0f7f4;font-weight:600;color:#666;padding:10px 12px;text-align:left;border-bottom:2px solid #d4e8de;white-space:nowrap}td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:top}tr:hover td{background:#fafdfb}.radio-group{display:flex;gap:20px;align-items:center}.radio-group label{display:flex;align-items:center;gap:4px;font-size:13px}.text-input{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;font-size:13px;resize:vertical;min-height:60px;transition:border-color 0.2s}.text-input:focus{outline:none;border-color:#1e9a6c;box-shadow:0 0 0 2px rgba(30,154,108,0.1)}.empty-state{text-align:center;padding:30px;color:#999}.close-btn{display:block;margin:20px auto;padding:8px 24px;background:#1e9a6c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500}.close-btn:hover{background:#198059;box-shadow:0 2px 8px rgba(30,154,108,0.3)}@media(max-width:1200px){.info-grid{grid-template-columns:repeat(2,1fr)}}</style>';
+            html += '</head><body>';
+            html += '<div class="page-title">抽样单校验问题详情</div>';
+
+            // 数据校验结果
+            html += '<div class="section"><div class="section-header">数据校验结果</div><div class="section-body">';
+            html += '<table><thead><tr><th style="width:40px"></th><th style="width:50px">序号</th><th style="width:100px">问题字段</th><th style="width:150px">当前内容</th><th style="width:280px">问题描述</th><th style="width:280px">规则说明</th><th style="width:180px">机构核实情况</th><th style="width:100px">是否修改</th><th>原因</th></tr></thead><tbody>';
+            html += '<tr><td><input type="checkbox"></td><td>1</td><td>' + item.issueField + '</td><td>城市</td><td>' + issueDesc + '</td><td>' + ruleDesc + '</td>';
+            html += '<td><div class="radio-group"><label><input type="radio" name="verify" ' + (item.orgVerify === 'verified' ? 'checked' : '') + '> 存在问题</label><label><input type="radio" name="verify" ' + (item.orgVerify === 'unverified' ? 'checked' : '') + '> 不存在问题</label></div></td>';
+            html += '<td><select class="text-input" style="min-height:auto"><option>请选择</option><option>未修改</option><option>已修改</option></select></td>';
+            html += '<td><textarea class="text-input" placeholder="请输入原因"></textarea></td></tr>';
+            html += '</tbody></table></div></div>';
+
+            // 抽样基础信息
+            html += '<div class="section"><div class="section-header">抽样基础信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">抽样编号</span><span class="info-value">' + item.sampleNo + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品来源</span><span class="info-value">加工/自制</span></div>';
+            html += '<div class="info-item"><span class="info-label">加工/自制</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">报送分类A</span><span class="info-value">' + item.reportCategoryA + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">报送分类B</span><span class="info-value">' + item.reportCategoryB + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">食品大类</span><span class="info-value">' + item.foodCategory + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">食品亚类</span><span class="info-value">' + item.foodSubCategory + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">食品次亚类</span><span class="info-value">' + item.foodSubSubCategory + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">食品细类</span><span class="info-value">' + item.foodFineCategory + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样类型</span><span class="info-value">常规抽样</span></div>';
+            html += '<div class="info-item"><span class="info-label">任务来源</span><span class="info-value">' + item.taskSource + '</span></div>';
+            html += '</div></div></div>';
+
+            // 抽样单位信息
+            html += '<div class="section"><div class="section-header">抽样单位信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">抽样单位名称</span><span class="info-value">' + item.sampleOrg + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">单位地址</span><span class="info-value">北京市海淀区永丰产业基地永丰东路17号</span></div>';
+            html += '<div class="info-item"><span class="info-label">所在省份</span><span class="info-value">北京</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样人员</span><span class="info-value">' + item.sampler + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样人员电话</span><span class="info-value">010-82479415</span></div>';
+            html += '<div class="info-item"><span class="info-label">单位联系人</span><span class="info-value">王殿毅</span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人电话</span><span class="info-value">010-82479415</span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人邮箱</span><span class="info-value">bjjsaz@scjg.beijing.gov.cn</span></div>';
+            html += '<div class="info-item"><span class="info-label">传真</span><span class="info-value">010-62340845</span></div>';
+            html += '<div class="info-item"><span class="info-label">邮编</span><span class="info-value">100094</span></div>';
+            html += '<div class="info-item"><span class="info-label">单位级别</span><span class="info-value"></span></div>';
+            html += '</div></div></div>';
+
+            // 抽样场所信息
+            html += '<div class="section"><div class="section-header">抽样场所信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">被抽样单位名称</span><span class="info-value">华联生鲜超市(马驹桥中学路店)</span></div>';
+            html += '<div class="info-item"><span class="info-label">单位地址</span><span class="info-value">通州区马驹桥3街马驹桥中学路交叉路口北</span></div>';
+            html += '<div class="info-item"><span class="info-label">所在地</span><span class="info-value">北京/通州/通州</span></div>';
+            html += '<div class="info-item"><span class="info-label">区域类型</span><span class="info-value">超市</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样环节</span><span class="info-value">流通</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样地点</span><span class="info-value">中型超市</span></div>';
+            html += '<div class="info-item"><span class="info-label">营业执照/社会信用代码</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">许可证</span><span class="info-value">经营许可证</span></div>';
+            html += '<div class="info-item"><span class="info-label">许可证ID</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">单位法人</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">法人电话</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人电话</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">邮编</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">年销售额</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">农产品摊位号或姓名</span><span class="info-value"></span></div>';
+            html += '</div></div></div>';
+
+            // 集中交易市场信息
+            html += '<div class="section"><div class="section-header">集中交易市场信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">市场名称</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">市场地址</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">法定代表人(负责人)</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">联系电话</span><span class="info-value"></span></div>';
+            html += '</div></div></div>';
+
+            // 生产企业信息
+            html += '<div class="section"><div class="section-header">生产企业信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">企业名称</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">企业地址</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">企业所在地</span><span class="info-value">北京/通州/通州</span></div>';
+            html += '<div class="info-item"><span class="info-label">生产许可证号</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">生产企业电话</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">是否存在第三方企业</span><span class="info-value">否</span></div>';
+            html += '</div></div></div>';
+
+            // 网络交易平台经营者信息
+            html += '<div class="section"><div class="section-header">网络交易平台经营者信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">网络平台名称</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">平台营业执照号</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">平台网址</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">入网许可证号或(ICP经营许可证)</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">所在地</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">平台地址</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">法定代表人(负责人)</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">平台联系电话</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">网店店铺名称</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">网络订单编号</span><span class="info-value"></span></div>';
+            html += '</div></div></div>';
+
+            // 抽样样品信息
+            html += '<div class="section"><div class="section-header">抽样样品信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">样品名称</span><span class="info-value">' + item.sampleName + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品条码</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品商标</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品类型</span><span class="info-value">餐饮加工食品</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品来源</span><span class="info-value">加工/自制</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品属性</span><span class="info-value">普通食品</span></div>';
+            html += '<div class="info-item"><span class="info-label">包装规格</span><span class="info-value">不涉及</span></div>';
+            html += '<div class="info-item"><span class="info-label">日期</span><span class="info-value">2026-08-29</span></div>';
+            html += '<div class="info-item"><span class="info-label">保质期</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">保质期单位</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">样品批号</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">样品规格</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">质量等级</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">是否进口</span><span class="info-value">否</span></div>';
+            html += '<div class="info-item"><span class="info-label">原产地</span><span class="info-value">中国</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样日期</span><span class="info-value">' + item.sampleDate + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样数量</span><span class="info-value">0.4kg</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样基数/批量</span><span class="info-value">kg</span></div>';
+            html += '<div class="info-item"><span class="info-label">备样数量</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样数量单位</span><span class="info-value">kg</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品形态</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">温度(℃)</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">湿度(%)</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样样品包装</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">包装分类</span><span class="info-value">不涉及</span></div>';
+            html += '<div class="info-item"><span class="info-label">抽样方式</span><span class="info-value">非无菌抽样</span></div>';
+            html += '<div class="info-item"><span class="info-label">储存条件</span><span class="info-value">冷藏</span></div>';
+            html += '<div class="info-item"><span class="info-label">单价</span><span class="info-value">18.75元/kg</span></div>';
+            html += '<div class="info-item"><span class="info-label">执行标准/技术文件</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品备注</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">产品认证情况</span><span class="info-value"></span></div>';
+            html += '</div></div></div>';
+
+            // 检验信息
+            html += '<div class="section"><div class="section-header">检验信息</div><div class="section-body"><div class="info-grid">';
+            html += '<div class="info-item"><span class="info-label">检验机构名称</span><span class="info-value">' + item.inspectionOrg + '</span></div>';
+            html += '<div class="info-item"><span class="info-label">报告编号</span><span class="info-value">/</span></div>';
+            html += '<div class="info-item"><span class="info-label">样品到达日期</span><span class="info-value">2026-08-29</span></div>';
+            html += '<div class="info-item"><span class="info-label">报告日期</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">报告签发人</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人</span><span class="info-value">王晶毅</span></div>';
+            html += '<div class="info-item"><span class="info-label">联系人电话</span><span class="info-value">010-82479415</span></div>';
+            html += '<div class="info-item"><span class="info-label">电子邮箱</span><span class="info-value">bjjsaz@scjg.beijing.gov.cn</span></div>';
+            html += '<div class="info-item"><span class="info-label">检验日期(开始时间)</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">报告分类</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">检验目的/任务类别</span><span class="info-value">风险监测</span></div>';
+            html += '<div class="info-item"><span class="info-label">结论</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">检验封样人员</span><span class="info-value">李春红</span></div>';
+            html += '<div class="info-item"><span class="info-label">检验封样人电话</span><span class="info-value">13310655996</span></div>';
+            html += '<div class="info-item"><span class="info-label">检验封样人邮箱</span><span class="info-value">bjjsaz@scjg.beijing.gov.cn</span></div>';
+            html += '<div class="info-item"><span class="info-label">系统填报日期</span><span class="info-value">2025-09-04</span></div>';
+            html += '<div class="info-item"><span class="info-label">监督抽检报告备注</span><span class="info-value"></span></div>';
+            html += '<div class="info-item"><span class="info-label">风险监测报告备注</span><span class="info-value"></span></div>';
+            html += '</div></div></div>';
+
+            // 检验结论
+            html += '<div class="section"><div class="section-header">检验结论</div><div class="section-body">';
+            html += '<table><thead><tr><th style="width:40px">序号</th><th>检验项目</th><th>检验结果</th><th>结果单位</th><th>结果判定</th><th>检验依据</th><th>检验依据简称</th><th>判定依据</th><th>标准方法检出限</th><th>标准检出限单位</th><th>方法检出限</th><th>检出限单位</th><th>标准最小允许限</th><th>标准最小允许限单位</th><th>标准最大允许限</th><th>标准最大允许限单位</th><th>最小允许限</th><th>最大允许限</th><th>允许限</th></tr></thead><tbody>';
+            html += '<tr><td colspan="19" class="empty-state">没有找到匹配的记录</td></tr>';
+            html += '</tbody></table></div></div>';
+
+            html += '<button class="close-btn" onclick="window.close()">× 关闭</button>';
+            html += '</body></html>';
+
+            var blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+            var url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+        }
+
+        // 导出
+        function exportExcel() {
+            if (filteredData.length === 0) { alert('暂无数据可导出'); return; }
+            var headers = ['抽样编号', '更新时间', '系统校验时间', '问题数量', '问题字段', '样品名称', '样品状态', '抽样日期', '场所所在省', '场所所在市', '场所所在县', '任务来源', '报送分类A', '报送分类B', '检验机构名称', '抽样机构', '样品结论', '食品大类', '食品亚类', '食品次亚类', '食品细类', '抽样人员', '是否修改', '操作'];
+            var rows = filteredData.map(function(item) {
+                return [item.sampleNo, item.updateTime, item.sysCheckTime, item.issueCount, item.issueField, item.sampleName, item.sampleStatus, item.sampleDate, item.province, item.city, item.county, item.taskSource, item.reportCategoryA, item.reportCategoryB, item.inspectionOrg, item.sampleOrg, item.sampleConclusion || '', item.foodCategory, item.foodSubCategory, item.foodSubSubCategory, item.foodFineCategory, item.sampler, item.isModified ? '是' : '否', '查看'];
+            });
+            var csv = '\uFEFF' + headers.join(',') + '\n' + rows.map(function(r) { return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '系统校验问题_' + new Date().toISOString().slice(0, 10) + '.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        // 初始化
+        renderTable();
+    </script>
+</body>
+</html>
